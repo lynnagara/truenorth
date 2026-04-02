@@ -1,0 +1,18 @@
+llm:
+  # LOCAL or ANTHROPIC
+  provider: ANTHROPIC
+  model: claude-sonnet-4-6
+  max_tokens: 2000
+
+embeddings:
+  provider: LOCAL
+
+autonomy:
+  # NOTIFY_ONLY -> REQUIRE_APPROVAL -> EXECUTE
+  mode: NOTIFY_ONLY
+
+risk_management:
+  min_position_pct: 0.03
+  max_position_pct: 0.10
+  max_daily_buys: 5
+  min_buy_confidence: 0.65
