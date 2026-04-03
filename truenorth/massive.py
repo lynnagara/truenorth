@@ -18,7 +18,9 @@ class MassiveClient:
     def __init__(self, api_key: str):
         self._client = RESTClient(api_key=api_key)
 
-    def get_fundamentals(self, ticker: str, last_price: float, _retries: int = 10) -> Fundamentals:
+    def get_fundamentals(
+        self, ticker: str, last_price: float, _retries: int = 10
+    ) -> Fundamentals:
         try:
             return self._get_fundamentals(ticker, last_price)
         except MaxRetryError:
@@ -38,11 +40,15 @@ class MassiveClient:
         financials = self._client.vx.list_stock_financials(ticker=ticker, limit=1)  # type: ignore[attr-defined]
         for financial in financials:
             try:
-                eps = float(financial.financials.income_statement.basic_earnings_per_share.value)
-            except (AttributeError, TypeError):
+                eps = float(
+                    financial.financials.income_statement.basic_earnings_per_share.value  # type: ignore[attr-defined]
+                )
+            except AttributeError, TypeError:
                 pass
             break
 
         pe_ratio = (last_price / eps) if eps and eps != 0 else None
 
-        return Fundamentals(market_cap=market_cap, eps=eps, pe_ratio=pe_ratio, industry=industry)
+        return Fundamentals(
+            market_cap=market_cap, eps=eps, pe_ratio=pe_ratio, industry=industry
+        )
