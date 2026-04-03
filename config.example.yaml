@@ -1,7 +1,7 @@
 llm:
   # LOCAL or ANTHROPIC
-  provider: ANTHROPIC
-  model: claude-sonnet-4-6
+  provider: LOCAL
+  model: llama4
   max_tokens: 2000
 
 embeddings:
