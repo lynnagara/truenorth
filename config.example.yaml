@@ -7,9 +7,11 @@ llm:
 embeddings:
   provider: LOCAL
 
-autonomy:
-  # NOTIFY_ONLY -> REQUIRE_APPROVAL -> EXECUTE
-  mode: NOTIFY_ONLY
+execution:
+  # NOTIFY_ONLY -> REQUIRE_APPROVAL -> AUTONOMOUS
+  autonomy: NOTIFY_ONLY
+  # PAPER -> LIVE
+  trading: PAPER
 
 risk_management:
   min_position_pct: 0.03
