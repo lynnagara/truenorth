@@ -33,7 +33,7 @@ def main():
     if args.command == "trade":
         config = load_config(config_path=args.config)
         llm = create_llm(config.llm)
-        agent = Agent(llm=llm)
+        agent = Agent(llm=llm, min_buy_confidence=config.risk.min_buy_confidence)
         alpaca = AlpacaClient(config.alpaca_api_key, config.alpaca_secret_key)
         massive = MassiveClient(config.massive_api_key)
 
