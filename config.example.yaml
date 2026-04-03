@@ -1,7 +1,7 @@
 llm:
   # LOCAL or ANTHROPIC
   provider: LOCAL
-  model: llama4
+  model: llama3.2
   max_tokens: 2000
 
 embeddings:

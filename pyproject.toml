@@ -9,6 +9,7 @@ requires-python = ">=3.14"
 dependencies = [
     "anthropic",
     "alpaca-py",
+    "massive",
     "pytz",  # transitive dep of alpaca-py, not declared by it
     "ollama",
     "psycopg[binary]",

@@ -53,7 +53,7 @@ class Config(BaseModel):
     database_url: str
     alpaca_api_key: str
     alpaca_secret_key: str
-    polygon_api_key: str
+    massive_api_key: str
     anthropic_api_key: str
 
     # from config.yaml
@@ -82,7 +82,7 @@ def load_config(config_path: Path) -> Config:
         database_url=_env("DATABASE_URL"),
         alpaca_api_key=_env("ALPACA_API_KEY"),
         alpaca_secret_key=_env("ALPACA_SECRET_KEY"),
-        polygon_api_key=_env("POLYGON_API_KEY"),
+        massive_api_key=_env("MASSIVE_API_KEY"),
         anthropic_api_key=_env("ANTHROPIC_API_KEY"),
         llm=LLMConfig(**y["llm"]),
         embeddings=EmbeddingsConfig(**y["embeddings"]),
