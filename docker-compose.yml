@@ -1,0 +1,14 @@
+services:
+  db:
+    image: pgvector/pgvector:pg18
+    environment:
+      POSTGRES_DB: truenorth
+      POSTGRES_USER: truenorth
+      POSTGRES_PASSWORD: truenorth
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql
+
+volumes:
+  db_data:
