@@ -11,6 +11,7 @@ class Fundamentals:
     market_cap: float | None  # USD
     eps: float | None  # USD, earnings per share
     pe_ratio: float | None  # price / EPS
+    industry: str | None  # SIC description
 
 
 class MassiveClient:
@@ -31,6 +32,7 @@ class MassiveClient:
         # massive sdk seems to return Union[TickerDetails, HTTPResponse] here?
         assert isinstance(details, TickerDetails)
         market_cap = float(details.market_cap) if details.market_cap else None
+        industry = details.sic_description or None
 
         eps = None
         financials = self._client.vx.list_stock_financials(ticker=ticker, limit=1)  # type: ignore[attr-defined]
@@ -43,4 +45,4 @@ class MassiveClient:
 
         pe_ratio = (last_price / eps) if eps and eps != 0 else None
 
-        return Fundamentals(market_cap=market_cap, eps=eps, pe_ratio=pe_ratio)
+        return Fundamentals(market_cap=market_cap, eps=eps, pe_ratio=pe_ratio, industry=industry)

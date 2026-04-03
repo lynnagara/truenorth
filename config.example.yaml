@@ -17,4 +17,4 @@ risk_management:
   min_position_pct: 0.03
   max_position_pct: 0.10
   max_daily_buys: 5
-  min_buy_confidence: 0.65
+  min_buy_confidence: 0.2 # TODO: revert after testing
