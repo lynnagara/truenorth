@@ -6,7 +6,6 @@ import yaml
 from pydantic import BaseModel, Field
 
 
-
 class LLMProvider(StrEnum):
     ANTHROPIC = "ANTHROPIC"
     LOCAL = "LOCAL"

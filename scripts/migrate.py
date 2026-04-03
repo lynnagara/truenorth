@@ -22,11 +22,8 @@ def run(database_url: str) -> None:
 
         for path in pending:
             print(f"Applying {path.name}...")
-            sql = path.read_text()
-            conn.execute(sql)
-            conn.execute(
-                "INSERT INTO migrations (name) VALUES (%s)", (path.name,)
-            )
+            conn.execute(path.read_text())  # type: ignore[arg-type]
+            conn.execute("INSERT INTO migrations (name) VALUES (%s)", (path.name,))
             conn.commit()
             print(f"  ✓ {path.name}")
 

@@ -14,7 +14,14 @@ migrate:
 trade:
 	uv run truenorth trade --config config.example.yaml
 
+lint:
+	uv run ruff check .
+	uv run pyright
+
+format:
+	uv run ruff format .
+
 test:
 	uv run pytest
 
-.PHONY: setup-dev db db-stop migrate trade test
+.PHONY: setup-dev db db-stop migrate trade lint format test

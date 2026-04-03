@@ -19,6 +19,8 @@ class OllamaLLM(LLM):
             model=self._model,
             messages=[{"role": "user", "content": prompt}],
         )
+        if response.message.content is None:
+            raise ValueError("LLM returned empty response")
         return response.message.content
 
 

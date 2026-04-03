@@ -1,6 +1,12 @@
 from pathlib import Path
 
-from truenorth.config import load_config, AutonomyMode, TradingMode, LLMProvider, EmbeddingsProvider
+from truenorth.config import (
+    load_config,
+    AutonomyMode,
+    TradingMode,
+    LLMProvider,
+    EmbeddingsProvider,
+)
 
 ENV_EXAMPLE = Path(__file__).parent.parent / ".env.example"
 CONFIG_EXAMPLE = Path(__file__).parent.parent / "config.example.yaml"

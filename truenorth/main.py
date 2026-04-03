@@ -8,7 +8,9 @@ from truenorth.llm import create_llm
 
 
 def _add_config_arg(parser):
-    parser.add_argument("--config", type=Path, required=True, help="Path to yaml config file")
+    parser.add_argument(
+        "--config", type=Path, required=True, help="Path to yaml config file"
+    )
 
 
 def main():

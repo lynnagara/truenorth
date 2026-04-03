@@ -17,7 +17,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest"]
+dev = ["pytest", "ruff", "pyright"]
 
 [project.scripts]
 truenorth = "truenorth.main:main"
