@@ -28,10 +28,13 @@ def test_load_config(monkeypatch):
 
     config = load_config(config_path=CONFIG_EXAMPLE)
 
-    assert config.database_url == "postgresql://localhost:5432/truenorth"
+    assert (
+        config.database_url
+        == "postgresql://truenorth:truenorth@localhost:5432/truenorth"
+    )
 
-    assert config.llm.provider == LLMProvider.ANTHROPIC
-    assert config.llm.model == "claude-sonnet-4-6"
+    assert config.llm.provider == LLMProvider.LOCAL
+    assert config.llm.model == "llama3.2"
     assert config.llm.max_tokens == 2000
 
     assert config.embeddings.provider == EmbeddingsProvider.LOCAL

@@ -8,7 +8,10 @@ from truenorth.llm import LLM
 
 class Decision(BaseModel):
     signal: float = Field(ge=-1.0, le=1.0)
-    entry_price: float | None  # USD, limit order price; None if signal is not a buy
+    entry_price: float | None  # USD, limit buy price; None if signal is not a buy
+    target_price: (
+        float | None
+    )  # USD, limit sell (take profit); None if signal is not a buy
     reasoning: str
 
 
@@ -60,12 +63,13 @@ Fundamentals:
 Return a JSON object with exactly these fields:
 - signal: a float between -1.0 and 1.0 where -1.0 is strong sell, 0.0 is neutral, 1.0 is strong buy
 - entry_price: if signal >= {self._min_buy_confidence}, the price (in USD) at which you would place a limit buy order; otherwise null
+- target_price: if signal >= {self._min_buy_confidence}, your take-profit target price (in USD); otherwise null
 - reasoning: a concise explanation of your assessment, referencing price trend, fundamentals, and macro environment
 
 Respond with JSON only, no other text.
 
 Example:
-{{"signal": 0.7, "entry_price": 170.00, "reasoning": "Strong fundamentals with recent earnings beat, would enter on a dip to support..."}}"""
+{{"signal": 0.7, "entry_price": 170.00, "target_price": 195.00, "reasoning": "Strong fundamentals with recent earnings beat, would enter on a dip to support..."}}"""
 
         response = self._llm.send_message(prompt)
         # llama models sometimes emit invalid JSON escape sequences (e.g. \& in S\&P 500)
