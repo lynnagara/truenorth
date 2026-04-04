@@ -1,4 +1,4 @@
-from enum import StrEnum
+from dataclasses import dataclass
 import psycopg
 
 from alpaca.trading.enums import OrderSide
@@ -12,16 +12,34 @@ from truenorth.market import MacroContext, fetch_macro_context
 from truenorth.massive import MassiveClient
 
 
-class TickerStatus(StrEnum):
-    HELD_WITH_EXIT = "HELD_WITH_EXIT"
-    HELD_NO_EXIT = "HELD_NO_EXIT"
-    PENDING_BUY = "PENDING_BUY"
-    NO_POSITION = "NO_POSITION"
+@dataclass(frozen=True)
+class HeldWithExit:
+    order_id: str
+    target_price: (
+        float | None
+    )  # None if exit is a market order (not expected — we always place limit take-profits via OTO)
+
+
+@dataclass(frozen=True)
+class PendingBuy:
+    order_id: str
+    entry_price: float
+
+
+@dataclass(frozen=True)
+class NoPosition: ...
+
+
+@dataclass(frozen=True)
+class HeldNoExit: ...
+
+
+TickerState = NoPosition | PendingBuy | HeldNoExit | HeldWithExit
 
 
 def trade(config: Config) -> None:
     llm = create_llm(config.llm, anthropic_api_key=config.anthropic_api_key)
-    agent = Agent(llm=llm, min_buy_confidence=config.risk.min_buy_confidence)
+    agent = Agent(llm=llm, buy_threshold=config.risk.buy_threshold)
     alpaca = AlpacaClient(
         api_key=config.alpaca_api_key,
         secret_key=config.alpaca_secret_key,
@@ -34,15 +52,13 @@ def trade(config: Config) -> None:
 
     results = analyze_all(alpaca, agent, massive, macro, config)
 
-    for ticker, (status, analysis) in results.items():
-        print(f"  {ticker} [{status}]: {analysis.signal}  {analysis.reasoning}")
+    for ticker, (state, analysis) in results.items():
+        print(
+            f"  {ticker} [{type(state).__name__}]: {analysis.signal}  {analysis.reasoning}"
+        )
 
-    for ticker, (status, analysis) in results.items():
-        if (
-            status != TickerStatus.NO_POSITION
-            or analysis.signal >= config.risk.min_buy_confidence
-        ):
-            act(ticker, status, analysis, alpaca, config.risk)
+    for ticker, state, analysis in _prioritize(results, config.risk):
+        handle(ticker, state, analysis, alpaca, config.risk)
 
 
 def analyze_all(
@@ -51,14 +67,14 @@ def analyze_all(
     massive: MassiveClient,
     macro: MacroContext,
     config: Config,
-) -> dict[str, tuple[TickerStatus, Analysis]]:
+) -> dict[str, tuple[TickerState, Analysis]]:
     open_orders = alpaca.get_open_orders()
     held_tickers = [str(p.symbol) for p in alpaca.get_open_positions()]
-    pending_buy_tickers = [
-        str(o.symbol) for o in open_orders if o.side == OrderSide.BUY
-    ]
-    pending_sell_tickers = {
-        str(o.symbol) for o in open_orders if o.side == OrderSide.SELL
+    pending_buy_orders = {
+        str(o.symbol): o for o in open_orders if o.side == OrderSide.BUY
+    }
+    pending_sell_orders = {
+        str(o.symbol): o for o in open_orders if o.side == OrderSide.SELL
     }
 
     with psycopg.connect(config.database_url) as conn:
@@ -66,10 +82,10 @@ def analyze_all(
     watchlist_tickers = [row[0] for row in rows]
 
     all_tickers = list(
-        dict.fromkeys(held_tickers + pending_buy_tickers + watchlist_tickers)
+        dict.fromkeys(held_tickers + list(pending_buy_orders) + watchlist_tickers)
     )
 
-    results: dict[str, tuple[TickerStatus, Analysis]] = {}
+    results: dict[str, tuple[TickerState, Analysis]] = {}
     for ticker in all_tickers:
         last_price = alpaca.get_latest_price(ticker)
         history = alpaca.get_price_history(ticker)
@@ -86,26 +102,137 @@ def analyze_all(
         analysis = agent.analyze(ctx)
 
         if ticker in held_tickers:
-            status = (
-                TickerStatus.HELD_WITH_EXIT
-                if ticker in pending_sell_tickers
-                else TickerStatus.HELD_NO_EXIT
-            )
-        elif ticker in pending_buy_tickers:
-            status = TickerStatus.PENDING_BUY
-        else:
-            status = TickerStatus.NO_POSITION
+            if ticker in pending_sell_orders:
+                sell_order = pending_sell_orders[ticker]
+                state = HeldWithExit(
+                    order_id=str(sell_order.id),
+                    target_price=float(sell_order.limit_price)
+                    if sell_order.limit_price is not None
+                    else None,
+                )
 
-        results[ticker] = (status, analysis)
+            else:
+                state = HeldNoExit()
+
+        elif ticker in pending_buy_orders:
+            buy_order = pending_buy_orders[ticker]
+            assert buy_order.limit_price is not None
+            state = PendingBuy(
+                order_id=str(buy_order.id), entry_price=float(buy_order.limit_price)
+            )
+        else:
+            state = NoPosition()
+
+        results[ticker] = (state, analysis)
 
     return results
 
 
-def act(
+def _prioritize(
+    results: dict[str, tuple[TickerState, Analysis]], risk: RiskConfig
+) -> list[tuple[str, TickerState, Analysis]]:
+    """
+    exits first, then order updates, then new buys descreasing by signal strength.
+    """
+    items = [(t, s, a) for t, (s, a) in results.items()]
+
+    exits: list[tuple[str, TickerState, Analysis]] = [
+        (t, s, a)
+        for t, s, a in items
+        if isinstance(s, (HeldWithExit, HeldNoExit)) and a.signal <= risk.sell_threshold
+    ]
+    take_profit_updates: list[tuple[str, TickerState, Analysis]] = [
+        (t, s, a)
+        for t, s, a in items
+        if isinstance(s, HeldWithExit)
+        and a.target_price is not None
+        and s.target_price is not None
+        and abs(a.target_price - s.target_price) / s.target_price
+        > risk.order_update_threshold
+    ]
+    pending_buy_updates: list[tuple[str, TickerState, Analysis]] = [
+        (t, s, a)
+        for t, s, a in items
+        if isinstance(s, PendingBuy)
+        and a.entry_price is not None
+        and abs(a.entry_price - s.entry_price) / s.entry_price
+        > risk.order_update_threshold
+    ]
+    new_buys: list[tuple[str, TickerState, Analysis]] = sorted(
+        [
+            (t, s, a)
+            for t, s, a in items
+            if isinstance(s, NoPosition) and a.signal >= risk.buy_threshold
+        ],
+        key=lambda x: x[2].signal,
+        reverse=True,
+    )
+
+    ordered = exits + take_profit_updates + pending_buy_updates + new_buys
+    all_tickers = [t for t, _, _ in ordered]
+    assert len(all_tickers) == len(set(all_tickers)), (
+        "ticker appears in multiple buckets"
+    )
+
+    return ordered
+
+
+def _place_buy_order(
+    ticker: str, analysis: Analysis, alpaca: AlpacaClient, risk: RiskConfig
+) -> None:
+    assert analysis.entry_price is not None and analysis.target_price is not None
+    equity, buying_power = alpaca.get_account_info()
+    min_qty = int((equity * risk.min_position_pct) / analysis.entry_price)
+    max_qty = int((equity * risk.max_position_pct) / analysis.entry_price)
+    affordable_qty = int(buying_power / analysis.entry_price)
+    qty = min(max_qty, affordable_qty)
+    if qty < min_qty:
+        print(f"Not enough buying power, skipping buy for {ticker}")
+        return
+    alpaca.place_order(ticker, qty, analysis.entry_price, analysis.target_price)
+
+
+def handle(
     ticker: str,
-    status: TickerStatus,
+    state: TickerState,
     analysis: Analysis,
     alpaca: AlpacaClient,
     risk: RiskConfig,
 ) -> None:
-    pass  # TODO: implement order placement and position management
+    # status is derived at analysis time and may be stale by the time we act
+    # re-fetching state is not a guarantee either, so we rely on Alpaca to reject invalid orders
+
+    if isinstance(state, NoPosition):
+        if analysis.signal >= risk.buy_threshold:
+            _place_buy_order(ticker, analysis, alpaca, risk)
+
+    elif isinstance(state, PendingBuy):
+        if analysis.signal < risk.buy_threshold:
+            print(f"cancelling order {state.order_id} ({ticker})")
+            alpaca.cancel_order(state.order_id)
+        elif analysis.entry_price is not None:
+            drift = abs(analysis.entry_price - state.entry_price) / state.entry_price
+            if drift > risk.order_update_threshold:
+                alpaca.cancel_order(state.order_id)
+                _place_buy_order(ticker, analysis, alpaca, risk)
+
+    elif isinstance(state, HeldNoExit):
+        # handles the off-chance the sell leg was cancelled externally (e.g. manually or by Alpaca)
+        if analysis.signal <= risk.sell_threshold:
+            print(f"closing position {ticker}")
+            alpaca.close_position(ticker)  # market sell — we want out immediately
+
+    elif isinstance(state, HeldWithExit):
+        if analysis.signal <= risk.sell_threshold:
+            alpaca.cancel_order(state.order_id)
+            alpaca.close_position(
+                ticker
+            )  # market sell — take-profit cancelled, exit immediately
+        elif analysis.target_price is not None and state.target_price is not None:
+            drift = abs(analysis.target_price - state.target_price) / state.target_price
+            if drift > risk.order_update_threshold:
+                alpaca.cancel_order(state.order_id)
+                alpaca.place_take_profit(ticker, analysis.target_price)
+
+    else:
+        raise ValueError(f"Unhandled TickerStatus: {state.status}")

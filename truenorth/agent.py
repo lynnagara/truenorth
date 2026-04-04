@@ -16,9 +16,9 @@ class Analysis(BaseModel):
 
 
 class Agent:
-    def __init__(self, llm: LLM, min_buy_confidence: float):
+    def __init__(self, llm: LLM, buy_threshold: float):
         self._llm = llm
-        self._min_buy_confidence = min_buy_confidence
+        self._buy_threshold = buy_threshold
 
     def analyze(self, ctx: AnalysisContext) -> Analysis:
         history_str = "\n".join(f"  {d}: ${p:.2f}" for d, p in ctx.price_history)
@@ -62,8 +62,8 @@ Fundamentals:
 
 Return a JSON object with exactly these fields:
 - signal: a float between -1.0 and 1.0 where -1.0 is strong sell, 0.0 is neutral, 1.0 is strong buy
-- entry_price: if signal >= {self._min_buy_confidence}, the price (in USD) at which you would place a limit buy order; otherwise null
-- target_price: if signal >= {self._min_buy_confidence}, your take-profit target price (in USD); otherwise null
+- entry_price: if signal >= {self._buy_threshold}, the price (in USD) at which you would place a limit buy order; otherwise null
+- target_price: if signal >= {self._buy_threshold}, your take-profit target price (in USD); otherwise null
 - reasoning: a concise explanation of your assessment, referencing price trend, fundamentals, and macro environment
 
 Respond with JSON only, no other text.

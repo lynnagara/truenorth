@@ -3,7 +3,7 @@ from enum import StrEnum
 from pathlib import Path
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class LLMProvider(StrEnum):
@@ -45,7 +45,15 @@ class RiskConfig(BaseModel):
     max_position_pct: float = Field(gt=0, le=1)
     min_position_pct: float = Field(gt=0, le=1)
     max_daily_buys: int = Field(gt=0)
-    min_buy_confidence: float = Field(gt=0, le=1)
+    buy_threshold: float = Field(ge=-1, le=1)
+    sell_threshold: float = Field(ge=-1, le=1)
+    order_update_threshold: float = Field(gt=0, le=1)  # cancel and reissue if the model's suggested entry/target differs from the existing order by more than this fraction; 0 = always update, 1 = never update
+
+    @model_validator(mode="after")
+    def sell_below_buy(self) -> "RiskConfig":
+        if self.sell_threshold >= self.buy_threshold:
+            raise ValueError("sell_threshold must be less than buy_threshold")
+        return self
 
 
 class Config(BaseModel):

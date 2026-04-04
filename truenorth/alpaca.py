@@ -50,9 +50,10 @@ class AlpacaClient:
         bars = self._data.get_stock_bars(request)
         return [(bar.timestamp.date(), float(bar.close)) for bar in bars[ticker]]
 
-    def get_equity(self) -> float:
+    def get_account_info(self) -> tuple[float, float]:
+        """Returns (equity, buying_power)."""
         account = self._trading.get_account()
-        return float(account.equity)  # type: ignore[arg-type]
+        return float(account.equity), float(account.buying_power)  # type: ignore[arg-type]
 
     def place_order(
         self,
@@ -85,6 +86,21 @@ class AlpacaClient:
 
     def get_open_positions(self) -> list[Position]:
         return self._trading.get_all_positions()  # type: ignore[return-value]
+
+    def place_take_profit(self, ticker: str, target_price: float) -> str:
+        """Place a standalone GTC limit sell for the full position. Returns the order ID."""
+        position = self.get_open_position(ticker)
+        order = self._trading.submit_order(
+            LimitOrderRequest(
+                symbol=ticker,
+                qty=position.qty,
+                side=OrderSide.SELL,
+                type=OrderType.LIMIT,
+                time_in_force=TimeInForce.GTC,
+                limit_price=target_price,
+            )
+        )
+        return str(order.id)  # type: ignore[union-attr]
 
     def cancel_order(self, order_id: str) -> None:
         self._trading.cancel_order_by_id(order_id)
