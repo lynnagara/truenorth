@@ -1,4 +1,4 @@
-CREATE TABLE decisions (
+CREATE TABLE analysis (
     id          BIGSERIAL PRIMARY KEY,
     ticker      TEXT NOT NULL,
     signal      FLOAT NOT NULL CHECK (signal >= -1.0 AND signal <= 1.0),

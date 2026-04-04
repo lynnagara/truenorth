@@ -6,9 +6,9 @@ from truenorth.market import MacroContext
 from truenorth.massive import Fundamentals
 
 
-class DecisionContext(BaseModel):
+class AnalysisContext(BaseModel):
     """
-    Holds data available to the agent when making a decision for a ticker.
+    Holds data available to the agent when analyzing a ticker.
     Price values are all floats in USD, as this matches the types returned by Alpaca and Massive SDKs.
     """
 

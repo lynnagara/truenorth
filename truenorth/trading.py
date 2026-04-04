@@ -1,13 +1,12 @@
 from enum import StrEnum
-from typing import NamedTuple
 import psycopg
 
 from alpaca.trading.enums import OrderSide
 
-from truenorth.agent import Agent, Decision
+from truenorth.agent import Agent, Analysis
 from truenorth.alpaca import AlpacaClient
-from truenorth.config import Config, TradingMode
-from truenorth.context import DecisionContext
+from truenorth.config import Config, RiskConfig, TradingMode
+from truenorth.context import AnalysisContext
 from truenorth.llm import create_llm
 from truenorth.market import MacroContext, fetch_macro_context
 from truenorth.massive import MassiveClient
@@ -18,11 +17,6 @@ class TickerStatus(StrEnum):
     HELD_NO_EXIT = "HELD_NO_EXIT"
     PENDING_BUY = "PENDING_BUY"
     NO_POSITION = "NO_POSITION"
-
-
-class Analysis(NamedTuple):
-    decision: Decision
-    status: TickerStatus
 
 
 def trade(config: Config) -> None:
@@ -38,19 +32,17 @@ def trade(config: Config) -> None:
     macro = fetch_macro_context()
     print(f"VIX: {macro.vix:.1f}  SPY 5d: {macro.spy_change_5d:+.1%}")
 
-    analyses = analyze_all(alpaca, agent, massive, macro, config)
+    results = analyze_all(alpaca, agent, massive, macro, config)
 
-    for ticker, analysis in analyses.items():
-        print(
-            f"  {ticker} [{analysis.status}]: {analysis.decision.signal}  {analysis.decision.reasoning}"
-        )
+    for ticker, (status, analysis) in results.items():
+        print(f"  {ticker} [{status}]: {analysis.signal}  {analysis.reasoning}")
 
-    for ticker, analysis in analyses.items():
+    for ticker, (status, analysis) in results.items():
         if (
-            analysis.status != TickerStatus.NO_POSITION
-            or analysis.decision.signal >= config.risk.min_buy_confidence
+            status != TickerStatus.NO_POSITION
+            or analysis.signal >= config.risk.min_buy_confidence
         ):
-            act(ticker, analysis, alpaca, config)
+            act(ticker, status, analysis, alpaca, config.risk)
 
 
 def analyze_all(
@@ -59,7 +51,7 @@ def analyze_all(
     massive: MassiveClient,
     macro: MacroContext,
     config: Config,
-) -> dict[str, Analysis]:
+) -> dict[str, tuple[TickerStatus, Analysis]]:
     open_orders = alpaca.get_open_orders()
     held_tickers = [str(p.symbol) for p in alpaca.get_open_positions()]
     pending_buy_tickers = [
@@ -77,13 +69,13 @@ def analyze_all(
         dict.fromkeys(held_tickers + pending_buy_tickers + watchlist_tickers)
     )
 
-    analyses: dict[str, Analysis] = {}
+    results: dict[str, tuple[TickerStatus, Analysis]] = {}
     for ticker in all_tickers:
         last_price = alpaca.get_latest_price(ticker)
         history = alpaca.get_price_history(ticker)
         fundamentals = massive.get_fundamentals(ticker, last_price)
 
-        ctx = DecisionContext(
+        ctx = AnalysisContext(
             ticker=ticker,
             last_price=last_price,
             price_history=history,
@@ -91,7 +83,7 @@ def analyze_all(
             macro=macro,
         )
 
-        decision = agent.analyze(ctx)
+        analysis = agent.analyze(ctx)
 
         if ticker in held_tickers:
             status = (
@@ -104,10 +96,16 @@ def analyze_all(
         else:
             status = TickerStatus.NO_POSITION
 
-        analyses[ticker] = Analysis(decision=decision, status=status)
+        results[ticker] = (status, analysis)
 
-    return analyses
+    return results
 
 
-def act(ticker: str, analysis: Analysis, alpaca: AlpacaClient, config: Config) -> None:
+def act(
+    ticker: str,
+    status: TickerStatus,
+    analysis: Analysis,
+    alpaca: AlpacaClient,
+    risk: RiskConfig,
+) -> None:
     pass  # TODO: implement order placement and position management

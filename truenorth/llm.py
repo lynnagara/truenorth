@@ -56,5 +56,7 @@ def create_llm(config: LLMConfig, anthropic_api_key: str = "") -> LLM:
     if config.provider == LLMProvider.LOCAL:
         return OllamaLLM(model=config.model)
     if config.provider == LLMProvider.ANTHROPIC:
-        return AnthropicLLM(api_key=anthropic_api_key, model=config.model, max_tokens=config.max_tokens)
+        return AnthropicLLM(
+            api_key=anthropic_api_key, model=config.model, max_tokens=config.max_tokens
+        )
     raise ValueError(f"Unsupported LLM provider: {config.provider}")

@@ -2,11 +2,11 @@ import json
 
 from pydantic import BaseModel, Field
 
-from truenorth.context import DecisionContext
+from truenorth.context import AnalysisContext
 from truenorth.llm import LLM
 
 
-class Decision(BaseModel):
+class Analysis(BaseModel):
     signal: float = Field(ge=-1.0, le=1.0)
     entry_price: float | None  # USD, limit buy price; None if signal is not a buy
     target_price: (
@@ -20,7 +20,7 @@ class Agent:
         self._llm = llm
         self._min_buy_confidence = min_buy_confidence
 
-    def analyze(self, ctx: DecisionContext) -> Decision:
+    def analyze(self, ctx: AnalysisContext) -> Analysis:
         history_str = "\n".join(f"  {d}: ${p:.2f}" for d, p in ctx.price_history)
 
         fundamentals_str = "\n".join(
@@ -71,6 +71,6 @@ Respond with JSON only, no other text.
 Example:
 {{"signal": 0.7, "entry_price": 170.00, "target_price": 195.00, "reasoning": "Strong fundamentals with recent earnings beat, would enter on a dip to support..."}}"""
 
-        response = self._llm.generate(prompt, json_schema=Decision.model_json_schema())
+        response = self._llm.generate(prompt, json_schema=Analysis.model_json_schema())
         data = json.loads(response)
-        return Decision(**data)
+        return Analysis(**data)
