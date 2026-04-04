@@ -71,8 +71,6 @@ Respond with JSON only, no other text.
 Example:
 {{"signal": 0.7, "entry_price": 170.00, "target_price": 195.00, "reasoning": "Strong fundamentals with recent earnings beat, would enter on a dip to support..."}}"""
 
-        response = self._llm.send_message(prompt)
-        # llama models sometimes emit invalid JSON escape sequences (e.g. \& in S\&P 500)
-        response = response.replace("\\&", "&")
+        response = self._llm.generate(prompt, json_schema=Decision.model_json_schema())
         data = json.loads(response)
         return Decision(**data)

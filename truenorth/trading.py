@@ -26,7 +26,7 @@ class Analysis(NamedTuple):
 
 
 def trade(config: Config) -> None:
-    llm = create_llm(config.llm)
+    llm = create_llm(config.llm, anthropic_api_key=config.anthropic_api_key)
     agent = Agent(llm=llm, min_buy_confidence=config.risk.min_buy_confidence)
     alpaca = AlpacaClient(
         api_key=config.alpaca_api_key,
@@ -41,10 +41,15 @@ def trade(config: Config) -> None:
     analyses = analyze_all(alpaca, agent, massive, macro, config)
 
     for ticker, analysis in analyses.items():
-        print(f"  {ticker} [{analysis.status}]: {analysis.decision.signal}  {analysis.decision.reasoning}")
+        print(
+            f"  {ticker} [{analysis.status}]: {analysis.decision.signal}  {analysis.decision.reasoning}"
+        )
 
     for ticker, analysis in analyses.items():
-        if analysis.status != TickerStatus.NO_POSITION or analysis.decision.signal >= config.risk.min_buy_confidence:
+        if (
+            analysis.status != TickerStatus.NO_POSITION
+            or analysis.decision.signal >= config.risk.min_buy_confidence
+        ):
             act(ticker, analysis, alpaca, config)
 
 

@@ -5,9 +5,20 @@ from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockBarsRequest, StockLatestTradeRequest
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from alpaca.trading.client import TradingClient
-from alpaca.trading.enums import OrderClass, OrderSide, OrderType, QueryOrderStatus, TimeInForce
+from alpaca.trading.enums import (
+    OrderClass,
+    OrderSide,
+    OrderType,
+    QueryOrderStatus,
+    TimeInForce,
+)
 from alpaca.trading.models import Order, Position
-from alpaca.trading.requests import ClosePositionRequest, GetOrdersRequest, LimitOrderRequest, TakeProfitRequest
+from alpaca.trading.requests import (
+    ClosePositionRequest,
+    GetOrdersRequest,
+    LimitOrderRequest,
+    TakeProfitRequest,
+)
 
 
 class AlpacaClient:
