@@ -1,12 +1,14 @@
 import json
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from truenorth.context import AnalysisContext
 from truenorth.llm import LLM
 
 
 class Analysis(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     signal: float = Field(ge=-1.0, le=1.0)
     entry_price: float | None  # USD, limit buy price; None if signal is not a buy
     target_price: float | None  # USD, limit sell (take profit); None if signal is not a buy

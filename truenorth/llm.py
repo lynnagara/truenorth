@@ -46,7 +46,7 @@ class AnthropicLLM(LLM):
         }
         if json_schema is not None:
             kwargs["output_config"] = {
-                "format": {"type": "json_schema", "json_schema": json_schema}
+                "format": {"type": "json_schema", "schema": json_schema}
             }
         response = self._client.messages.create(**kwargs)
         block = response.content[0]
