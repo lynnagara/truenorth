@@ -1,2 +1,2 @@
 [deploy]
-startCommand = "truenorth trade --config config.railway.yaml"
+startCommand = "python scripts/migrate.py && truenorth trade --config config.railway.yaml"
