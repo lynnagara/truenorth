@@ -59,11 +59,12 @@ class AnthropicLLM(LLM):
 
 def create_llm(
     config: LLMConfig,
-    anthropic_api_key: str = "",
+    anthropic_api_key: str | None = None,
 ) -> LLM:
     if config.provider == LLMProvider.LOCAL:
         return OllamaLLM(model=config.model)
     if config.provider == LLMProvider.ANTHROPIC:
+        assert anthropic_api_key is not None
         return AnthropicLLM(
             api_key=anthropic_api_key,
             model=config.model,

@@ -64,7 +64,7 @@ class Config(BaseModel):
     alpaca_api_key: str
     alpaca_secret_key: str
     massive_api_key: str
-    anthropic_api_key: str
+    anthropic_api_key: str | None
     langfuse_public_key: str | None
     langfuse_secret_key: str | None
 
@@ -73,6 +73,12 @@ class Config(BaseModel):
     embeddings: EmbeddingsConfig
     execution: ExecutionConfig
     risk: RiskConfig
+
+    @model_validator(mode="after")
+    def anthropic_key_required_for_anthropic_provider(self) -> "Config":
+        if self.llm.provider == LLMProvider.ANTHROPIC and not self.anthropic_api_key:
+            raise ValueError("ANTHROPIC_API_KEY is required when llm.provider is ANTHROPIC")
+        return self
 
 
 def _load_yaml(path: Path) -> dict:
@@ -99,7 +105,7 @@ def load_config(config_path: Path) -> Config:
         alpaca_api_key=_env("ALPACA_API_KEY"),
         alpaca_secret_key=_env("ALPACA_SECRET_KEY"),
         massive_api_key=_env("MASSIVE_API_KEY"),
-        anthropic_api_key=_env("ANTHROPIC_API_KEY"),
+        anthropic_api_key=_env_optional("ANTHROPIC_API_KEY"),
         langfuse_public_key=_env_optional("LANGFUSE_PUBLIC_KEY"),
         langfuse_secret_key=_env_optional("LANGFUSE_SECRET_KEY"),
         llm=LLMConfig(**y["llm"]),
