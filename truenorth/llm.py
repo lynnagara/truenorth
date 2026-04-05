@@ -7,6 +7,18 @@ import ollama
 from truenorth.config import LLMConfig, LLMProvider
 
 
+_UNSUPPORTED_KEYWORDS = {"minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum"}
+
+
+def _clean_schema(schema: dict) -> dict:
+    """Recursively remove JSON schema keywords unsupported by Anthropic's structured outputs."""
+    return {
+        k: (_clean_schema(v) if isinstance(v, dict) else [_clean_schema(i) if isinstance(i, dict) else i for i in v] if isinstance(v, list) else v)
+        for k, v in schema.items()
+        if k not in _UNSUPPORTED_KEYWORDS
+    }
+
+
 class LLM(ABC):
     @abstractmethod
     def generate(self, prompt: str, json_schema: dict[str, Any] | None = None) -> str: ...
@@ -46,7 +58,7 @@ class AnthropicLLM(LLM):
         }
         if json_schema is not None:
             kwargs["output_config"] = {
-                "format": {"type": "json_schema", "schema": json_schema}
+                "format": {"type": "json_schema", "schema": _clean_schema(json_schema)}
             }
         response = self._client.messages.create(**kwargs)
         block = response.content[0]
