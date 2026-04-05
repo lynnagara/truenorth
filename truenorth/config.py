@@ -47,7 +47,9 @@ class RiskConfig(BaseModel):
     max_daily_buys: int = Field(gt=0)
     buy_threshold: float = Field(ge=-1, le=1)
     sell_threshold: float = Field(ge=-1, le=1)
-    order_update_threshold: float = Field(gt=0, le=1)  # cancel and reissue if the model's suggested entry/target differs from the existing order by more than this fraction; 0 = always update, 1 = never update
+    order_update_threshold: float = Field(
+        gt=0, le=1
+    )  # cancel and reissue if the model's suggested entry/target differs from the existing order by more than this fraction; 0 = always update, 1 = never update
 
     @model_validator(mode="after")
     def sell_below_buy(self) -> "RiskConfig":
@@ -63,6 +65,8 @@ class Config(BaseModel):
     alpaca_secret_key: str
     massive_api_key: str
     anthropic_api_key: str
+    langfuse_public_key: str | None
+    langfuse_secret_key: str | None
 
     # from config.yaml
     llm: LLMConfig
@@ -83,6 +87,10 @@ def _env(key: str) -> str:
     return value
 
 
+def _env_optional(key: str) -> str | None:
+    return os.environ.get(key)
+
+
 def load_config(config_path: Path) -> Config:
     y = _load_yaml(config_path)
 
@@ -92,6 +100,8 @@ def load_config(config_path: Path) -> Config:
         alpaca_secret_key=_env("ALPACA_SECRET_KEY"),
         massive_api_key=_env("MASSIVE_API_KEY"),
         anthropic_api_key=_env("ANTHROPIC_API_KEY"),
+        langfuse_public_key=_env_optional("LANGFUSE_PUBLIC_KEY"),
+        langfuse_secret_key=_env_optional("LANGFUSE_SECRET_KEY"),
         llm=LLMConfig(**y["llm"]),
         embeddings=EmbeddingsConfig(**y["embeddings"]),
         execution=ExecutionConfig(**y["execution"]),

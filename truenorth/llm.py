@@ -30,7 +30,12 @@ class OllamaLLM(LLM):
 
 
 class AnthropicLLM(LLM):
-    def __init__(self, api_key: str, model: str, max_tokens: int):
+    def __init__(
+        self,
+        api_key: str,
+        model: str,
+        max_tokens: int,
+    ):
         self._client = anthropic.Anthropic(api_key=api_key)
         self._model = model
         self._max_tokens = max_tokens
@@ -52,11 +57,16 @@ class AnthropicLLM(LLM):
         return block.text  # type: ignore[attr-defined]
 
 
-def create_llm(config: LLMConfig, anthropic_api_key: str = "") -> LLM:
+def create_llm(
+    config: LLMConfig,
+    anthropic_api_key: str = "",
+) -> LLM:
     if config.provider == LLMProvider.LOCAL:
         return OllamaLLM(model=config.model)
     if config.provider == LLMProvider.ANTHROPIC:
         return AnthropicLLM(
-            api_key=anthropic_api_key, model=config.model, max_tokens=config.max_tokens
+            api_key=anthropic_api_key,
+            model=config.model,
+            max_tokens=config.max_tokens,
         )
     raise ValueError(f"Unsupported LLM provider: {config.provider}")

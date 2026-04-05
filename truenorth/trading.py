@@ -11,6 +11,7 @@ from truenorth.context import AnalysisContext
 from truenorth.llm import create_llm
 from truenorth.market import MacroContext, fetch_macro_context
 from truenorth.massive import MassiveClient
+from truenorth.tracing import init_tracing, trace_analysis, trace_run
 
 
 @dataclass(frozen=True)
@@ -48,39 +49,42 @@ def trade(config: Config) -> None:
     )
     massive = MassiveClient(config.massive_api_key)
 
+    init_tracing(config)
+
     macro = fetch_macro_context()
     print(f"VIX: {macro.vix:.1f}  SPY 5d: {macro.spy_change_5d:+.1%}")
 
-    results = analyze_all(alpaca, agent, massive, macro, config)
+    with trace_run():
+        results = analyze_all(alpaca, agent, massive, macro, config)
 
-    for ticker, (state, analysis, _ctx) in results.items():
-        print(
-            f"  {ticker} [{type(state).__name__}]: {analysis.signal}  {analysis.reasoning}"
-        )
-
-    with psycopg.connect(config.database_url) as conn:
-        for ticker, (state, analysis, ctx) in results.items():
-            conn.execute(
-                """
-                INSERT INTO analysis (ticker, signal, entry_price, target_price, last_price, reasoning, fundamentals, macro, model)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """,
-                (
-                    ticker,
-                    analysis.signal,
-                    analysis.entry_price,
-                    analysis.target_price,
-                    ctx.last_price,
-                    analysis.reasoning,
-                    json.dumps(asdict(ctx.fundamentals)),
-                    json.dumps(ctx.macro.model_dump()),
-                    config.llm.model,
-                ),
+        for ticker, (state, analysis, _ctx) in results.items():
+            print(
+                f"  {ticker} [{type(state).__name__}]: {analysis.signal}  {analysis.reasoning}"
             )
-        conn.commit()
 
-    for ticker, state, analysis in _prioritize(results, config.risk):
-        handle(ticker, state, analysis, alpaca, config.risk)
+        with psycopg.connect(config.database_url) as conn:
+            for ticker, (state, analysis, ctx) in results.items():
+                conn.execute(
+                    """
+                    INSERT INTO analysis (ticker, signal, entry_price, target_price, last_price, reasoning, fundamentals, macro, model)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        ticker,
+                        analysis.signal,
+                        analysis.entry_price,
+                        analysis.target_price,
+                        ctx.last_price,
+                        analysis.reasoning,
+                        json.dumps(asdict(ctx.fundamentals)),
+                        json.dumps(ctx.macro.model_dump()),
+                        config.llm.model,
+                    ),
+                )
+            conn.commit()
+
+        for ticker, state, analysis in _prioritize(results, config.risk):
+            handle(ticker, state, analysis, alpaca, config.risk)
 
 
 def analyze_all(
@@ -121,7 +125,9 @@ def analyze_all(
             macro=macro,
         )
 
-        analysis = agent.analyze(ctx)
+        with trace_analysis(ctx, config.llm.model) as record:
+            analysis = agent.analyze(ctx)
+            record(analysis.model_dump())
 
         if ticker in held_tickers:
             if ticker in pending_sell_orders:
