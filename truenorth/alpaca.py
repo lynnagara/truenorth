@@ -25,9 +25,12 @@ class AlpacaClient:
     def __init__(self, api_key: str, secret_key: str, paper: bool = True):
         self._data = StockHistoricalDataClient(api_key, secret_key)
         self._trading = TradingClient(api_key, secret_key, paper=paper)
+        # IEX is free; SIP data is comprehensive and real time.
+        # Alpaca defaults to SIP, we have to explicitly request IEX for paper trading.
+        self._feed = DataFeed.IEX if paper else DataFeed.SIP
 
     def get_latest_price(self, ticker: str) -> float:
-        request = StockLatestTradeRequest(symbol_or_symbols=ticker, feed=DataFeed.IEX)
+        request = StockLatestTradeRequest(symbol_or_symbols=ticker, feed=self._feed)
         trade = self._data.get_stock_latest_trade(request)
         return float(trade[ticker].price)
 
@@ -40,10 +43,7 @@ class AlpacaClient:
             start=start,
             end=end,
             adjustment=Adjustment.SPLIT,
-            # IEX feed is free tier; SIP (consolidated) requires a paid subscription.
-            # On a live funded account, switch to DataFeed.SIP for more accurate data.
-            # TODO: make feed configurable based on execution.trading mode
-            feed=DataFeed.IEX,
+            feed=self._feed,
         )
         bars = self._data.get_stock_bars(request)
         return [(bar.timestamp.date(), float(bar.close)) for bar in bars[ticker]]
