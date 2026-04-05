@@ -16,18 +16,14 @@ def create_app(config: Config) -> FastAPI:
     @app.get("/watchlist")
     def get_watchlist() -> list[str]:
         with psycopg.connect(config.database_url) as conn:
-            rows = conn.execute(
-                "SELECT ticker FROM watchlist ORDER BY ticker"
-            ).fetchall()
+            rows = conn.execute("SELECT ticker FROM watchlist ORDER BY ticker").fetchall()
         return [row[0] for row in rows]
 
     @app.post("/watchlist", status_code=201)
     def add_ticker(item: WatchlistItem) -> WatchlistItem:
         with psycopg.connect(config.database_url) as conn:
             try:
-                conn.execute(
-                    "INSERT INTO watchlist (ticker) VALUES (%s)", (item.ticker.upper(),)
-                )
+                conn.execute("INSERT INTO watchlist (ticker) VALUES (%s)", (item.ticker.upper(),))
                 conn.commit()
             except psycopg.errors.UniqueViolation:
                 raise HTTPException(
@@ -38,14 +34,10 @@ def create_app(config: Config) -> FastAPI:
     @app.delete("/watchlist/{ticker}", status_code=204)
     def remove_ticker(ticker: str) -> None:
         with psycopg.connect(config.database_url) as conn:
-            result = conn.execute(
-                "DELETE FROM watchlist WHERE ticker = %s", (ticker.upper(),)
-            )
+            result = conn.execute("DELETE FROM watchlist WHERE ticker = %s", (ticker.upper(),))
             conn.commit()
             if result.rowcount == 0:
-                raise HTTPException(
-                    status_code=404, detail=f"{ticker} not found in watchlist"
-                )
+                raise HTTPException(status_code=404, detail=f"{ticker} not found in watchlist")
 
     return app
 

@@ -13,8 +13,6 @@ def fetch_macro_context() -> MacroContext:
 
     spy_ticker = yf.Ticker("SPY")
     hist = spy_ticker.history(period="6d")
-    spy_change_5d = float(
-        (hist["Close"].iloc[-1] - hist["Close"].iloc[0]) / hist["Close"].iloc[0]
-    )
+    spy_change_5d = float((hist["Close"].iloc[-1] - hist["Close"].iloc[0]) / hist["Close"].iloc[0])
 
     return MacroContext(vix=vix, spy_change_5d=spy_change_5d)

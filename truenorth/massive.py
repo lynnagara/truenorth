@@ -18,9 +18,7 @@ class MassiveClient:
     def __init__(self, api_key: str):
         self._client = RESTClient(api_key=api_key)
 
-    def get_fundamentals(
-        self, ticker: str, last_price: float, _retries: int = 10
-    ) -> Fundamentals:
+    def get_fundamentals(self, ticker: str, last_price: float, _retries: int = 10) -> Fundamentals:
         try:
             return self._get_fundamentals(ticker, last_price)
         except MaxRetryError:
@@ -49,6 +47,4 @@ class MassiveClient:
 
         pe_ratio = (last_price / eps) if eps and eps != 0 else None
 
-        return Fundamentals(
-            market_cap=market_cap, eps=eps, pe_ratio=pe_ratio, industry=industry
-        )
+        return Fundamentals(market_cap=market_cap, eps=eps, pe_ratio=pe_ratio, industry=industry)

@@ -11,9 +11,7 @@ from alpaca.trading.requests import GetOrdersRequest
 
 from truenorth.alpaca import AlpacaClient
 
-client = AlpacaClient(
-    os.environ["ALPACA_API_KEY"], os.environ["ALPACA_SECRET_KEY"], paper=True
-)
+client = AlpacaClient(os.environ["ALPACA_API_KEY"], os.environ["ALPACA_SECRET_KEY"], paper=True)
 
 # Buy well below market so it won't fill during the test
 order_id = client.place_order(

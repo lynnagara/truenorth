@@ -9,9 +9,7 @@ from truenorth.config import LLMConfig, LLMProvider
 
 class LLM(ABC):
     @abstractmethod
-    def generate(
-        self, prompt: str, json_schema: dict[str, Any] | None = None
-    ) -> str: ...
+    def generate(self, prompt: str, json_schema: dict[str, Any] | None = None) -> str: ...
 
 
 class OllamaLLM(LLM):

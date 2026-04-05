@@ -22,6 +22,7 @@ lint:
 	uv run pyright
 
 format:
+	uv run ruff check --fix .
 	uv run ruff format .
 
 test:

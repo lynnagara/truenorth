@@ -1,12 +1,11 @@
 import argparse
 from pathlib import Path
+
 from truenorth.config import load_config
 
 
 def _add_config_arg(parser):
-    parser.add_argument(
-        "--config", type=Path, required=True, help="Path to yaml config file"
-    )
+    parser.add_argument("--config", type=Path, required=True, help="Path to yaml config file")
 
 
 def main():

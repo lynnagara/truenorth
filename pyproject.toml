@@ -27,5 +27,14 @@ dev = ["pytest", "ruff", "pyright"]
 [project.scripts]
 truenorth = "truenorth.main:main"
 
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "I",  # isort
+    "F",  # pyflakes
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["truenorth"]

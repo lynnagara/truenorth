@@ -1,7 +1,7 @@
-from dataclasses import dataclass, asdict
 import json
-import psycopg
+from dataclasses import asdict, dataclass
 
+import psycopg
 from alpaca.trading.enums import OrderSide
 
 from truenorth.agent import Agent, Analysis
@@ -58,9 +58,7 @@ def trade(config: Config) -> None:
         results = analyze_all(alpaca, agent, massive, macro, config)
 
         for ticker, (state, analysis, _ctx) in results.items():
-            print(
-                f"  {ticker} [{type(state).__name__}]: {analysis.signal}  {analysis.reasoning}"
-            )
+            print(f"  {ticker} [{type(state).__name__}]: {analysis.signal}  {analysis.reasoning}")
 
         with psycopg.connect(config.database_url) as conn:
             for ticker, (state, analysis, ctx) in results.items():
@@ -96,20 +94,14 @@ def analyze_all(
 ) -> dict[str, tuple[TickerState, Analysis, AnalysisContext]]:
     open_orders = alpaca.get_open_orders()
     held_tickers = [str(p.symbol) for p in alpaca.get_open_positions()]
-    pending_buy_orders = {
-        str(o.symbol): o for o in open_orders if o.side == OrderSide.BUY
-    }
-    pending_sell_orders = {
-        str(o.symbol): o for o in open_orders if o.side == OrderSide.SELL
-    }
+    pending_buy_orders = {str(o.symbol): o for o in open_orders if o.side == OrderSide.BUY}
+    pending_sell_orders = {str(o.symbol): o for o in open_orders if o.side == OrderSide.SELL}
 
     with psycopg.connect(config.database_url) as conn:
         rows = conn.execute("SELECT ticker FROM watchlist ORDER BY ticker").fetchall()
     watchlist_tickers = [row[0] for row in rows]
 
-    all_tickers = list(
-        dict.fromkeys(held_tickers + list(pending_buy_orders) + watchlist_tickers)
-    )
+    all_tickers = list(dict.fromkeys(held_tickers + list(pending_buy_orders) + watchlist_tickers))
 
     results: dict[str, tuple[TickerState, Analysis, AnalysisContext]] = {}
     for ticker in all_tickers:
@@ -145,9 +137,7 @@ def analyze_all(
         elif ticker in pending_buy_orders:
             buy_order = pending_buy_orders[ticker]
             assert buy_order.limit_price is not None
-            state = PendingBuy(
-                order_id=str(buy_order.id), entry_price=float(buy_order.limit_price)
-            )
+            state = PendingBuy(order_id=str(buy_order.id), entry_price=float(buy_order.limit_price))
         else:
             state = NoPosition()
 
@@ -175,16 +165,14 @@ def _prioritize(
         if isinstance(s, HeldWithExit)
         and a.target_price is not None
         and s.target_price is not None
-        and abs(a.target_price - s.target_price) / s.target_price
-        > risk.order_update_threshold
+        and abs(a.target_price - s.target_price) / s.target_price > risk.order_update_threshold
     ]
     pending_buy_updates: list[tuple[str, TickerState, Analysis]] = [
         (t, s, a)
         for t, s, a in items
         if isinstance(s, PendingBuy)
         and a.entry_price is not None
-        and abs(a.entry_price - s.entry_price) / s.entry_price
-        > risk.order_update_threshold
+        and abs(a.entry_price - s.entry_price) / s.entry_price > risk.order_update_threshold
     ]
     new_buys: list[tuple[str, TickerState, Analysis]] = sorted(
         [
@@ -198,9 +186,7 @@ def _prioritize(
 
     ordered = exits + take_profit_updates + pending_buy_updates + new_buys
     all_tickers = [t for t, _, _ in ordered]
-    assert len(all_tickers) == len(set(all_tickers)), (
-        "ticker appears in multiple buckets"
-    )
+    assert len(all_tickers) == len(set(all_tickers)), "ticker appears in multiple buckets"
 
     return ordered
 
@@ -253,9 +239,7 @@ def handle(
     elif isinstance(state, HeldWithExit):
         if analysis.signal <= risk.sell_threshold:
             alpaca.cancel_order(state.order_id)
-            alpaca.close_position(
-                ticker
-            )  # market sell — take-profit cancelled, exit immediately
+            alpaca.close_position(ticker)  # market sell — take-profit cancelled, exit immediately
         elif analysis.target_price is not None and state.target_price is not None:
             drift = abs(analysis.target_price - state.target_price) / state.target_price
             if drift > risk.order_update_threshold:

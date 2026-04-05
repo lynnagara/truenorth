@@ -1,11 +1,11 @@
 from pathlib import Path
 
 from truenorth.config import (
-    load_config,
     AutonomyMode,
-    TradingMode,
-    LLMProvider,
     EmbeddingsProvider,
+    LLMProvider,
+    TradingMode,
+    load_config,
 )
 
 ENV_EXAMPLE = Path(__file__).parent.parent / ".env.example"
@@ -28,10 +28,7 @@ def test_load_config(monkeypatch):
 
     config = load_config(config_path=CONFIG_EXAMPLE)
 
-    assert (
-        config.database_url
-        == "postgresql://truenorth:truenorth@localhost:5432/truenorth"
-    )
+    assert config.database_url == "postgresql://truenorth:truenorth@localhost:5432/truenorth"
 
     assert config.llm.provider == LLMProvider.LOCAL
     assert config.llm.model == "llama3.2"

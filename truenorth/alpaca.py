@@ -31,9 +31,7 @@ class AlpacaClient:
         trade = self._data.get_stock_latest_trade(request)
         return float(trade[ticker].price)
 
-    def get_price_history(
-        self, ticker: str, days: int = 90
-    ) -> list[tuple[date, float]]:
+    def get_price_history(self, ticker: str, days: int = 90) -> list[tuple[date, float]]:
         end = datetime.now(tz=timezone.utc)
         start = end - timedelta(days=days)
         request = StockBarsRequest(
