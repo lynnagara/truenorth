@@ -1,0 +1,2 @@
+[deploy]
+startCommand = "truenorth trade --config config.railway.yaml"

@@ -1,0 +1,21 @@
+llm:
+  provider: ANTHROPIC
+  model: claude-haiku-4-5 # test on cheapest model
+  max_tokens: 2000
+
+embeddings:
+  provider: LOCAL
+
+execution:
+  # NOTIFY_ONLY -> REQUIRE_APPROVAL -> AUTONOMOUS
+  autonomy: NOTIFY_ONLY
+  # PAPER -> LIVE
+  trading: PAPER
+
+risk_management:
+  min_position_pct: 0.03
+  max_position_pct: 0.10
+  max_daily_buys: 5
+  buy_threshold: 0.65   # signal must be >= buy_threshold to open a position
+  sell_threshold: -0.3  # signal must be <= sell_threshold to close a position
+  order_update_threshold: 0.03  # cancel and reissue if the model's suggested entry/target differs from the existing order by more than 3%
