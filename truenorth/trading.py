@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
+import json
 import psycopg
 
 from alpaca.trading.enums import OrderSide
@@ -52,10 +53,31 @@ def trade(config: Config) -> None:
 
     results = analyze_all(alpaca, agent, massive, macro, config)
 
-    for ticker, (state, analysis) in results.items():
+    for ticker, (state, analysis, _ctx) in results.items():
         print(
             f"  {ticker} [{type(state).__name__}]: {analysis.signal}  {analysis.reasoning}"
         )
+
+    with psycopg.connect(config.database_url) as conn:
+        for ticker, (state, analysis, ctx) in results.items():
+            conn.execute(
+                """
+                INSERT INTO analysis (ticker, signal, entry_price, target_price, last_price, reasoning, fundamentals, macro, model)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    ticker,
+                    analysis.signal,
+                    analysis.entry_price,
+                    analysis.target_price,
+                    ctx.last_price,
+                    analysis.reasoning,
+                    json.dumps(asdict(ctx.fundamentals)),
+                    json.dumps(ctx.macro.model_dump()),
+                    config.llm.model,
+                ),
+            )
+        conn.commit()
 
     for ticker, state, analysis in _prioritize(results, config.risk):
         handle(ticker, state, analysis, alpaca, config.risk)
@@ -67,7 +89,7 @@ def analyze_all(
     massive: MassiveClient,
     macro: MacroContext,
     config: Config,
-) -> dict[str, tuple[TickerState, Analysis]]:
+) -> dict[str, tuple[TickerState, Analysis, AnalysisContext]]:
     open_orders = alpaca.get_open_orders()
     held_tickers = [str(p.symbol) for p in alpaca.get_open_positions()]
     pending_buy_orders = {
@@ -85,7 +107,7 @@ def analyze_all(
         dict.fromkeys(held_tickers + list(pending_buy_orders) + watchlist_tickers)
     )
 
-    results: dict[str, tuple[TickerState, Analysis]] = {}
+    results: dict[str, tuple[TickerState, Analysis, AnalysisContext]] = {}
     for ticker in all_tickers:
         last_price = alpaca.get_latest_price(ticker)
         history = alpaca.get_price_history(ticker)
@@ -123,18 +145,18 @@ def analyze_all(
         else:
             state = NoPosition()
 
-        results[ticker] = (state, analysis)
+        results[ticker] = (state, analysis, ctx)
 
     return results
 
 
 def _prioritize(
-    results: dict[str, tuple[TickerState, Analysis]], risk: RiskConfig
+    results: dict[str, tuple[TickerState, Analysis, AnalysisContext]], risk: RiskConfig
 ) -> list[tuple[str, TickerState, Analysis]]:
     """
     exits first, then order updates, then new buys descreasing by signal strength.
     """
-    items = [(t, s, a) for t, (s, a) in results.items()]
+    items = [(t, s, a) for t, (s, a, _ctx) in results.items()]
 
     exits: list[tuple[str, TickerState, Analysis]] = [
         (t, s, a)
