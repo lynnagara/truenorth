@@ -991,8 +991,8 @@ dev = [
 requires-dist = [
     { name = "alpaca-py" },
     { name = "anthropic" },
-    { name = "fastapi", specifier = ">=0.135.3" },
-    { name = "langfuse", specifier = ">=4.0.6" },
+    { name = "fastapi" },
+    { name = "langfuse" },
     { name = "massive" },
     { name = "ollama" },
     { name = "psycopg", extras = ["binary"] },
@@ -1002,8 +1002,8 @@ requires-dist = [
     { name = "pytz" },
     { name = "pyyaml" },
     { name = "ruff", marker = "extra == 'dev'" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.43.0" },
-    { name = "yfinance", specifier = ">=1.2.0" },
+    { name = "uvicorn", extras = ["standard"] },
+    { name = "yfinance" },
 ]
 provides-extras = ["dev"]
 

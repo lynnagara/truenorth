@@ -7,18 +7,18 @@ name = "truenorth"
 version = "0.1.0"
 requires-python = ">=3.14"
 dependencies = [
-    "anthropic",
     "alpaca-py",
+    "anthropic",
+    "fastapi",
+    "langfuse",
     "massive",
-    "pytz",  # transitive dep of alpaca-py, not declared by it
     "ollama",
     "psycopg[binary]",
-    "pyyaml",
     "pydantic-settings",
-    "yfinance>=1.2.0",
-    "fastapi>=0.135.3",
-    "uvicorn[standard]>=0.43.0",
-    "langfuse>=4.0.6",
+    "pytz",  # transitive dep of alpaca-py, not declared by it
+    "pyyaml",
+    "uvicorn[standard]",
+    "yfinance",
 ]
 
 [project.optional-dependencies]
