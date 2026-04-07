@@ -34,6 +34,21 @@ class AlpacaClient:
         trade = self._data.get_stock_latest_trade(request)
         return float(trade[ticker].price)
 
+    def get_price_on_date(self, ticker: str, target: date) -> float | None:
+        """Return the closing price on the last trading day on or before target. Returns None if no bar found."""
+        request = StockBarsRequest(
+            symbol_or_symbols=ticker,
+            timeframe=TimeFrame(1, TimeFrameUnit.Day),  # type: ignore[arg-type]
+            start=datetime(target.year, target.month, target.day, tzinfo=timezone.utc) - timedelta(days=5),
+            end=datetime(target.year, target.month, target.day, tzinfo=timezone.utc),
+            adjustment=Adjustment.SPLIT,
+        )
+        bars = self._data.get_stock_bars(request)
+        ticker_bars = bars.data.get(ticker, [])
+        if not ticker_bars:
+            return None
+        return float(ticker_bars[-1].close)
+
     def get_price_history(self, ticker: str, days: int = 90) -> list[tuple[date, float]]:
         end = datetime.now(tz=timezone.utc)
         start = end - timedelta(days=days)

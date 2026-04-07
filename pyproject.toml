@@ -17,6 +17,7 @@ dependencies = [
     "pydantic-settings",
     "pytz",  # transitive dep of alpaca-py, not declared by it
     "pyyaml",
+    "scipy>=1.17.1",
     "uvicorn[standard]",
     "yfinance",
 ]

@@ -15,6 +15,9 @@ def main():
     trade_parser = subparsers.add_parser("trade", help="Execute trading cycle")
     _add_config_arg(trade_parser)
 
+    evaluate_parser = subparsers.add_parser("evaluate", help="Evaluate signal accuracy vs SPY")
+    _add_config_arg(evaluate_parser)
+
     serve_parser = subparsers.add_parser("serve", help="Start API server")
     _add_config_arg(serve_parser)
 
@@ -25,6 +28,11 @@ def main():
 
         config = load_config(config_path=args.config)
         trade(config)
+    elif args.command == "evaluate":
+        from truenorth.evaluate import evaluate
+
+        config = load_config(config_path=args.config)
+        evaluate(config)
     elif args.command == "serve":
         config = load_config(config_path=args.config)
         from truenorth.server import serve

@@ -4,3 +4,5 @@ ALTER TABLE analysis
     DROP COLUMN price_at_4w,
     DROP COLUMN price_at_8w,
     DROP COLUMN price_at_12w;
+
+CREATE INDEX analysis_created_at ON analysis (created_at);

@@ -17,6 +17,9 @@ trade:
 serve:
 	uv run truenorth serve --config config.example.yaml
 
+evaluate:
+	uv run truenorth evaluate --config config.example.yaml
+
 lint:
 	uv run ruff check .
 	uv run pyright
@@ -28,4 +31,4 @@ format:
 test:
 	uv run pytest
 
-.PHONY: setup-dev db db-stop migrate trade serve lint format test
+.PHONY: setup-dev db db-stop migrate trade serve evaluate lint format test
