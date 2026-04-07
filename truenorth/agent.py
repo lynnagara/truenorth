@@ -5,6 +5,28 @@ from pydantic import BaseModel, ConfigDict, Field
 from truenorth.context import AnalysisContext
 from truenorth.llm import LLM
 
+_PROMPT_TEMPLATE = """You are an equity analyst. Analyze the stock {ticker} currently trading at ${last_price:.2f}.
+
+Macro environment:
+{macro}
+
+Price history (daily close, last 90 days):
+{history}
+
+Fundamentals:
+{fundamentals}
+
+Return a JSON object with exactly these fields:
+- signal: a float between -1.0 and 1.0 where -1.0 is strong sell, 0.0 is neutral, 1.0 is strong buy
+- entry_price: if signal >= {buy_threshold}, the price (in USD) at which you would place a limit buy order; otherwise null
+- target_price: if signal >= {buy_threshold}, your take-profit target price (in USD); otherwise null
+- reasoning: a concise explanation of your assessment, referencing price trend, fundamentals, and macro environment
+
+Respond with JSON only, no other text.
+
+Example:
+{{"signal": 0.7, "entry_price": 170.00, "target_price": 195.00, "reasoning": "Strong fundamentals with recent earnings beat, would enter on a dip to support..."}}"""
+
 
 class Analysis(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -41,27 +63,14 @@ class Agent:
         vix_level = "elevated" if ctx.macro.vix > 25 else "normal" if ctx.macro.vix > 15 else "low"
         macro_str = f"  VIX: {ctx.macro.vix:.1f} ({vix_level} volatility)\n  S&P 500 5-day change: {ctx.macro.spy_change_5d:+.1%}"
 
-        prompt = f"""You are an equity analyst. Analyze the stock {ctx.ticker} currently trading at ${ctx.last_price:.2f}.
-
-Macro environment:
-{macro_str}
-
-Price history (daily close, last 90 days):
-{history_str}
-
-Fundamentals:
-{fundamentals_str}
-
-Return a JSON object with exactly these fields:
-- signal: a float between -1.0 and 1.0 where -1.0 is strong sell, 0.0 is neutral, 1.0 is strong buy
-- entry_price: if signal >= {self._buy_threshold}, the price (in USD) at which you would place a limit buy order; otherwise null
-- target_price: if signal >= {self._buy_threshold}, your take-profit target price (in USD); otherwise null
-- reasoning: a concise explanation of your assessment, referencing price trend, fundamentals, and macro environment
-
-Respond with JSON only, no other text.
-
-Example:
-{{"signal": 0.7, "entry_price": 170.00, "target_price": 195.00, "reasoning": "Strong fundamentals with recent earnings beat, would enter on a dip to support..."}}"""
+        prompt = _PROMPT_TEMPLATE.format(
+            ticker=ctx.ticker,
+            last_price=ctx.last_price,
+            macro=macro_str,
+            history=history_str,
+            fundamentals=fundamentals_str,
+            buy_threshold=self._buy_threshold,
+        )
 
         response = self._llm.generate(prompt, json_schema=Analysis.model_json_schema())
         data = json.loads(response)
