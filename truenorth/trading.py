@@ -55,33 +55,41 @@ def trade(config: Config) -> None:
     print(f"VIX: {macro.vix:.1f}  SPY 5d: {macro.spy_change_5d:+.1%}")
 
     with trace_run():
-        results = analyze_all(alpaca, agent, massive, macro, config)
-
-        for ticker, (state, analysis, _ctx) in results.items():
-            print(f"  {ticker} [{type(state).__name__}]: {analysis.signal}  {analysis.reasoning}")
+        primary_results: dict[str, tuple[TickerState, Analysis, AnalysisContext]] = {}
 
         with psycopg.connect(config.database_url) as conn:
-            for ticker, (state, analysis, ctx) in results.items():
-                conn.execute(
-                    """
-                    INSERT INTO analysis (ticker, signal, entry_price, target_price, last_price, reasoning, fundamentals, macro, model)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    """,
-                    (
-                        ticker,
-                        analysis.signal,
-                        analysis.entry_price,
-                        analysis.target_price,
-                        ctx.last_price,
-                        analysis.reasoning,
-                        json.dumps(asdict(ctx.fundamentals)),
-                        json.dumps(ctx.macro.model_dump()),
-                        config.llm.model,
-                    ),
-                )
+            for experiment_id in config.experiments.active:
+                results = analyze_all(alpaca, agent, massive, macro, config)
+
+                for ticker, (state, analysis, _ctx) in results.items():
+                    print(f"  [{experiment_id}] {ticker} [{type(state).__name__}]: {analysis.signal}  {analysis.reasoning}")
+
+                for ticker, (state, analysis, ctx) in results.items():
+                    conn.execute(
+                        """
+                        INSERT INTO analysis (ticker, signal, entry_price, target_price, last_price, reasoning, fundamentals, macro, model, experiment_id)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        (
+                            ticker,
+                            analysis.signal,
+                            analysis.entry_price,
+                            analysis.target_price,
+                            ctx.last_price,
+                            analysis.reasoning,
+                            json.dumps(asdict(ctx.fundamentals)),
+                            json.dumps(ctx.macro.model_dump()),
+                            config.llm.model,
+                            experiment_id,
+                        ),
+                    )
+
+                if experiment_id == config.experiments.primary:
+                    primary_results = results
+
             conn.commit()
 
-        for ticker, state, analysis in _prioritize(results, config.risk):
+        for ticker, state, analysis in _prioritize(primary_results, config.risk):
             handle(ticker, state, analysis, alpaca, config.risk)
 
 

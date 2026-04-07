@@ -36,6 +36,17 @@ class EmbeddingsConfig(BaseModel):
     provider: EmbeddingsProvider
 
 
+class ExperimentsConfig(BaseModel):
+    primary: int
+    active: list[int]
+
+    @model_validator(mode="after")
+    def primary_must_be_active(self) -> "ExperimentsConfig":
+        if self.primary not in self.active:
+            raise ValueError("primary experiment must be in active list")
+        return self
+
+
 class ExecutionConfig(BaseModel):
     autonomy: AutonomyMode
     trading: TradingMode
@@ -72,6 +83,7 @@ class Config(BaseModel):
     llm: LLMConfig
     embeddings: EmbeddingsConfig
     execution: ExecutionConfig
+    experiments: ExperimentsConfig
     risk: RiskConfig
 
     @model_validator(mode="after")
@@ -111,5 +123,6 @@ def load_config(config_path: Path) -> Config:
         llm=LLMConfig(**y["llm"]),
         embeddings=EmbeddingsConfig(**y["embeddings"]),
         execution=ExecutionConfig(**y["execution"]),
+        experiments=ExperimentsConfig(**y["experiments"]),
         risk=RiskConfig(**y["risk_management"]),
     )
