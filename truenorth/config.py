@@ -37,14 +37,12 @@ class EmbeddingsConfig(BaseModel):
 
 
 class ExperimentsConfig(BaseModel):
-    primary: int
-    active: list[int]
+    primary: str
+    additional: list[str] = []
 
-    @model_validator(mode="after")
-    def primary_must_be_active(self) -> "ExperimentsConfig":
-        if self.primary not in self.active:
-            raise ValueError("primary experiment must be in active list")
-        return self
+    @property
+    def all_prompts(self) -> list[str]:
+        return [self.primary] + self.additional
 
 
 class ExecutionConfig(BaseModel):

@@ -25,8 +25,8 @@ def evaluate(config: Config) -> None:
             spy_cache[d] = alpaca.get_price_on_date("SPY", d)
         return spy_cache[d]
 
-    for experiment_id in config.experiments.active:
-        print(f"\nexperiment {experiment_id}")
+    for prompt_name in config.experiments.all_prompts:
+        print(f"\nprompt: {prompt_name}")
         print(
             f"{'interval':>10}  {'n':>5}  {'signal/alpha correlation':>24}  {'mean alpha (vs SPY)':>20}"
         )
@@ -40,10 +40,10 @@ def evaluate(config: Config) -> None:
                     """
                     SELECT DISTINCT ON (ticker, created_at::date) ticker, signal, last_price, created_at
                     FROM analysis
-                    WHERE signal != 0 AND created_at <= %s AND experiment_id = %s
+                    WHERE signal != 0 AND created_at <= %s AND prompt_name = %s
                     ORDER BY ticker, created_at::date, created_at DESC
                     """,
-                    (cutoff, experiment_id),
+                    (cutoff, prompt_name),
                 ).fetchall()
 
             if not rows:

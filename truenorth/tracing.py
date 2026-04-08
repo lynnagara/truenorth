@@ -4,7 +4,7 @@ from typing import Callable, Generator
 from langfuse import Langfuse
 
 from truenorth.config import Config
-from truenorth.context import AnalysisContext
+from truenorth.prompts import AnalysisContext
 
 langfuse: Langfuse | None = None
 

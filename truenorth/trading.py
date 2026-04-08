@@ -7,10 +7,10 @@ from alpaca.trading.enums import OrderSide
 from truenorth.agent import Agent, Analysis
 from truenorth.alpaca import AlpacaClient
 from truenorth.config import Config, RiskConfig, TradingMode
-from truenorth.context import AnalysisContext
 from truenorth.llm import create_llm
 from truenorth.market import MacroContext, fetch_macro_context
 from truenorth.massive import MassiveClient
+from truenorth.prompts import PROMPT_REGISTRY, AnalysisContext
 from truenorth.tracing import init_tracing, trace_analysis, trace_run
 
 
@@ -41,7 +41,6 @@ TickerState = NoPosition | PendingBuy | HeldNoExit | HeldWithExit
 
 def trade(config: Config) -> None:
     llm = create_llm(config.llm, anthropic_api_key=config.anthropic_api_key)
-    agent = Agent(llm=llm, buy_threshold=config.risk.buy_threshold)
     alpaca = AlpacaClient(
         api_key=config.alpaca_api_key,
         secret_key=config.alpaca_secret_key,
@@ -58,18 +57,20 @@ def trade(config: Config) -> None:
         primary_results: dict[str, tuple[TickerState, Analysis, AnalysisContext]] = {}
 
         with psycopg.connect(config.database_url) as conn:
-            for experiment_id in config.experiments.active:
+            for prompt_name in config.experiments.all_prompts:
+                prompt = PROMPT_REGISTRY[prompt_name]
+                agent = Agent(llm=llm, prompt=prompt)
                 results = analyze_all(alpaca, agent, massive, macro, config)
 
                 for ticker, (state, analysis, _ctx) in results.items():
                     print(
-                        f"  [{experiment_id}] {ticker} [{type(state).__name__}]: {analysis.signal}  {analysis.reasoning}"
+                        f"  [{prompt_name}] {ticker} [{type(state).__name__}]: {analysis.signal}  {analysis.reasoning}"
                     )
 
                 for ticker, (state, analysis, ctx) in results.items():
                     conn.execute(
                         """
-                        INSERT INTO analysis (ticker, signal, entry_price, target_price, last_price, reasoning, fundamentals, macro, model, experiment_id)
+                        INSERT INTO analysis (ticker, signal, entry_price, target_price, last_price, reasoning, fundamentals, macro, model, prompt_name)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         """,
                         (
@@ -82,11 +83,11 @@ def trade(config: Config) -> None:
                             json.dumps(asdict(ctx.fundamentals)),
                             json.dumps(ctx.macro.model_dump()),
                             config.llm.model,
-                            experiment_id,
+                            prompt_name,
                         ),
                     )
 
-                if experiment_id == config.experiments.primary:
+                if prompt_name == config.experiments.primary:
                     primary_results = results
 
             conn.commit()

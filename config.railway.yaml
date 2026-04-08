@@ -13,8 +13,8 @@ execution:
   trading: PAPER
 
 experiments:
-  primary: 1
-  active: [1]
+  primary: basic_fundamentals
+  additional: []
 
 risk_management:
   min_position_pct: 0.03
