@@ -56,11 +56,13 @@ def trade(config: Config) -> None:
     with trace_run():
         primary_results: dict[str, tuple[TickerState, Analysis, AnalysisContext]] = {}
 
+        contexts = fetch_contexts(alpaca, massive, macro, config)
+
         with psycopg.connect(config.database_url) as conn:
             for prompt_name in config.experiments.all_prompts:
                 prompt = PROMPT_REGISTRY[prompt_name]
                 agent = Agent(llm=llm, prompt=prompt)
-                results = analyze_all(alpaca, agent, massive, macro, config)
+                results = run_analyses(agent, contexts, config)
 
                 for ticker, (state, analysis, _ctx) in results.items():
                     print(
@@ -96,13 +98,12 @@ def trade(config: Config) -> None:
             handle(ticker, state, analysis, alpaca, config.risk)
 
 
-def analyze_all(
+def fetch_contexts(
     alpaca: AlpacaClient,
-    agent: Agent,
     massive: MassiveClient,
     macro: MacroContext,
     config: Config,
-) -> dict[str, tuple[TickerState, Analysis, AnalysisContext]]:
+) -> dict[str, tuple[TickerState, AnalysisContext]]:
     open_orders = alpaca.get_open_orders()
     held_tickers = [str(p.symbol) for p in alpaca.get_open_positions()]
     pending_buy_orders = {str(o.symbol): o for o in open_orders if o.side == OrderSide.BUY}
@@ -114,7 +115,7 @@ def analyze_all(
 
     all_tickers = list(dict.fromkeys(held_tickers + list(pending_buy_orders) + watchlist_tickers))
 
-    results: dict[str, tuple[TickerState, Analysis, AnalysisContext]] = {}
+    contexts: dict[str, tuple[TickerState, AnalysisContext]] = {}
     for ticker in all_tickers:
         last_price = alpaca.get_latest_price(ticker)
         history = alpaca.get_price_history(ticker)
@@ -130,23 +131,17 @@ def analyze_all(
             news=news,
         )
 
-        with trace_analysis(ctx, config.llm.model) as record:
-            analysis = agent.analyze(ctx)
-            record(analysis.model_dump())
-
         if ticker in held_tickers:
             if ticker in pending_sell_orders:
                 sell_order = pending_sell_orders[ticker]
-                state = HeldWithExit(
+                state: TickerState = HeldWithExit(
                     order_id=str(sell_order.id),
                     target_price=float(sell_order.limit_price)
                     if sell_order.limit_price is not None
                     else None,
                 )
-
             else:
                 state = HeldNoExit()
-
         elif ticker in pending_buy_orders:
             buy_order = pending_buy_orders[ticker]
             assert buy_order.limit_price is not None
@@ -154,8 +149,22 @@ def analyze_all(
         else:
             state = NoPosition()
 
-        results[ticker] = (state, analysis, ctx)
+        contexts[ticker] = (state, ctx)
 
+    return contexts
+
+
+def run_analyses(
+    agent: Agent,
+    contexts: dict[str, tuple[TickerState, AnalysisContext]],
+    config: Config,
+) -> dict[str, tuple[TickerState, Analysis, AnalysisContext]]:
+    results: dict[str, tuple[TickerState, Analysis, AnalysisContext]] = {}
+    for ticker, (state, ctx) in contexts.items():
+        with trace_analysis(ctx, config.llm.model) as record:
+            analysis = agent.analyze(ctx)
+            record(analysis.model_dump())
+        results[ticker] = (state, analysis, ctx)
     return results
 
 
