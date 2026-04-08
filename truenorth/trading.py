@@ -95,7 +95,8 @@ def trade(config: Config) -> None:
             conn.commit()
 
         for ticker, state, analysis in _prioritize(primary_results, config.risk):
-            handle(ticker, state, analysis, alpaca, config.risk)
+            _, ctx = contexts[ticker]
+            handle(ticker, state, analysis, ctx.last_price, alpaca, config.risk)
 
 
 def fetch_contexts(
@@ -214,24 +215,30 @@ def _prioritize(
 
 
 def _place_buy_order(
-    ticker: str, analysis: Analysis, alpaca: AlpacaClient, risk: RiskConfig
+    ticker: str, analysis: Analysis, last_price: float, alpaca: AlpacaClient, risk: RiskConfig
 ) -> None:
     assert analysis.entry_price is not None and analysis.target_price is not None
+    min_entry = last_price * (1 - risk.max_entry_discount)
+    if analysis.entry_price < min_entry:
+        print(f"skipping buy for {ticker} — suggested entry {analysis.entry_price:.2f} is too far below last price {last_price:.2f}")
+        return
+    entry_price = round(min(analysis.entry_price, last_price), 2)
     equity, buying_power = alpaca.get_account_info()
-    min_qty = int((equity * risk.min_position_pct) / analysis.entry_price)
-    max_qty = int((equity * risk.max_position_pct) / analysis.entry_price)
-    affordable_qty = int(buying_power / analysis.entry_price)
+    min_qty = int((equity * risk.min_position_pct) / entry_price)
+    max_qty = int((equity * risk.max_position_pct) / entry_price)
+    affordable_qty = int(buying_power / entry_price)
     qty = min(max_qty, affordable_qty)
     if qty < min_qty:
         print(f"Not enough buying power, skipping buy for {ticker}")
         return
-    alpaca.place_order(ticker, qty, analysis.entry_price, analysis.target_price)
+    alpaca.place_order(ticker, qty, entry_price, analysis.target_price)
 
 
 def handle(
     ticker: str,
     state: TickerState,
     analysis: Analysis,
+    last_price: float,
     alpaca: AlpacaClient,
     risk: RiskConfig,
 ) -> None:
@@ -240,7 +247,7 @@ def handle(
 
     if isinstance(state, NoPosition):
         if analysis.signal >= risk.buy_threshold:
-            _place_buy_order(ticker, analysis, alpaca, risk)
+            _place_buy_order(ticker, analysis, last_price, alpaca, risk)
 
     elif isinstance(state, PendingBuy):
         if analysis.signal < risk.buy_threshold:
@@ -250,7 +257,7 @@ def handle(
             drift = abs(analysis.entry_price - state.entry_price) / state.entry_price
             if drift > risk.order_update_threshold:
                 alpaca.cancel_order(state.order_id)
-                _place_buy_order(ticker, analysis, alpaca, risk)
+                _place_buy_order(ticker, analysis, last_price, alpaca, risk)
 
     elif isinstance(state, HeldNoExit):
         # handles the off-chance the sell leg was cancelled externally (e.g. manually or by Alpaca)
