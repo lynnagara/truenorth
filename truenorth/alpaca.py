@@ -1,8 +1,8 @@
 from datetime import date, datetime, timedelta, timezone
 
 from alpaca.data.enums import Adjustment, DataFeed
-from alpaca.data.historical import StockHistoricalDataClient
-from alpaca.data.requests import StockBarsRequest, StockLatestTradeRequest
+from alpaca.data.historical import NewsClient, StockHistoricalDataClient
+from alpaca.data.requests import NewsRequest, StockBarsRequest, StockLatestTradeRequest
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from alpaca.trading.client import TradingClient
 from alpaca.trading.enums import (
@@ -24,6 +24,7 @@ from alpaca.trading.requests import (
 class AlpacaClient:
     def __init__(self, api_key: str, secret_key: str, paper: bool = True):
         self._data = StockHistoricalDataClient(api_key, secret_key)
+        self._news = NewsClient(api_key, secret_key)
         self._trading = TradingClient(api_key, secret_key, paper=paper)
         # IEX is free; SIP data is comprehensive and real time.
         # Alpaca defaults to SIP, we have to explicitly request IEX for paper trading.
@@ -63,6 +64,25 @@ class AlpacaClient:
         )
         bars = self._data.get_stock_bars(request)
         return [(bar.timestamp.date(), float(bar.close)) for bar in bars[ticker]]
+
+    def get_news(self, ticker: str, days: int = 3, limit: int = 10) -> list[str]:
+        """Return recent news headlines and summaries for a ticker."""
+        start = datetime.now(tz=timezone.utc) - timedelta(days=days)
+        request = NewsRequest(symbols=ticker, start=start, limit=limit, exclude_contentless=True)
+        news = self._news.get_news(request)
+        items: list = news.data.get("news", [])  # type: ignore[union-attr]
+        result = []
+        for item in items:
+            item_dict = item if isinstance(item, dict) else item.__dict__
+            created_at = item_dict.get("created_at")
+            headline = item_dict.get("headline", "")
+            summary = item_dict.get("summary", "")
+            date_str = created_at.strftime("%Y-%m-%d") if created_at else "unknown"
+            line = f"[{date_str}] {headline}"
+            if summary:
+                line += f" — {summary}"
+            result.append(line)
+        return result
 
     def get_account_info(self) -> tuple[float, float]:
         """Returns (equity, buying_power)."""
