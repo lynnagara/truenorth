@@ -1,2 +1,3 @@
 [deploy]
 startCommand = "python scripts/migrate.py && truenorth trade --config config.railway.yaml"
+cronSchedule = "0 15 * * 1-5"
