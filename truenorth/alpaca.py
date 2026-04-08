@@ -39,12 +39,13 @@ class AlpacaClient:
         request = StockBarsRequest(
             symbol_or_symbols=ticker,
             timeframe=TimeFrame(1, TimeFrameUnit.Day),  # type: ignore[arg-type]
-            start=datetime(target.year, target.month, target.day, tzinfo=timezone.utc) - timedelta(days=5),
+            start=datetime(target.year, target.month, target.day, tzinfo=timezone.utc)
+            - timedelta(days=5),
             end=datetime(target.year, target.month, target.day, tzinfo=timezone.utc),
             adjustment=Adjustment.SPLIT,
         )
         bars = self._data.get_stock_bars(request)
-        ticker_bars = bars.data.get(ticker, [])
+        ticker_bars = bars.data.get(ticker, [])  # type: ignore[union-attr]
         if not ticker_bars:
             return None
         return float(ticker_bars[-1].close)

@@ -6,14 +6,19 @@ import ollama
 
 from truenorth.config import LLMConfig, LLMProvider
 
-
 _UNSUPPORTED_KEYWORDS = {"minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum"}
 
 
 def _clean_schema(schema: dict) -> dict:
     """Recursively remove JSON schema keywords unsupported by Anthropic's structured outputs."""
     return {
-        k: (_clean_schema(v) if isinstance(v, dict) else [_clean_schema(i) if isinstance(i, dict) else i for i in v] if isinstance(v, list) else v)
+        k: (
+            _clean_schema(v)
+            if isinstance(v, dict)
+            else [_clean_schema(i) if isinstance(i, dict) else i for i in v]
+            if isinstance(v, list)
+            else v
+        )
         for k, v in schema.items()
         if k not in _UNSUPPORTED_KEYWORDS
     }

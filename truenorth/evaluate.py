@@ -27,7 +27,9 @@ def evaluate(config: Config) -> None:
 
     for experiment_id in config.experiments.active:
         print(f"\nexperiment {experiment_id}")
-        print(f"{'interval':>10}  {'n':>5}  {'signal/alpha correlation':>24}  {'mean alpha (vs SPY)':>20}")
+        print(
+            f"{'interval':>10}  {'n':>5}  {'signal/alpha correlation':>24}  {'mean alpha (vs SPY)':>20}"
+        )
         print("-" * 70)
 
         for interval_days in INTERVALS:

@@ -62,7 +62,9 @@ def trade(config: Config) -> None:
                 results = analyze_all(alpaca, agent, massive, macro, config)
 
                 for ticker, (state, analysis, _ctx) in results.items():
-                    print(f"  [{experiment_id}] {ticker} [{type(state).__name__}]: {analysis.signal}  {analysis.reasoning}")
+                    print(
+                        f"  [{experiment_id}] {ticker} [{type(state).__name__}]: {analysis.signal}  {analysis.reasoning}"
+                    )
 
                 for ticker, (state, analysis, ctx) in results.items():
                     conn.execute(
