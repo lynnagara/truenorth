@@ -119,6 +119,7 @@ def analyze_all(
         last_price = alpaca.get_latest_price(ticker)
         history = alpaca.get_price_history(ticker)
         fundamentals = massive.get_fundamentals(ticker, last_price)
+        news = alpaca.get_news(ticker)
 
         ctx = AnalysisContext(
             ticker=ticker,
@@ -126,6 +127,7 @@ def analyze_all(
             price_history=history,
             fundamentals=fundamentals,
             macro=macro,
+            news=news,
         )
 
         with trace_analysis(ctx, config.llm.model) as record:

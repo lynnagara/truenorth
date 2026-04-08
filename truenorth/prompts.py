@@ -17,6 +17,7 @@ class AnalysisContext(BaseModel):
     price_history: list[tuple[date, float]]  # (date, close price in USD)
     fundamentals: Fundamentals
     macro: MacroContext
+    news: list[str] = []  # recent headlines with summaries
 
 
 class Prompt:
@@ -71,8 +72,43 @@ Example:
         return self._TEMPLATE.format(**self._format_common(ctx))
 
 
+class SwingNewsFundamentalsPrompt(Prompt):
+    _TEMPLATE = """You are an equity analyst focused on swing trades with a 2-4 week holding period. Analyze the stock {ticker} currently trading at ${last_price:.2f}.
+
+Macro environment:
+{macro}
+
+Price history (daily close, last 90 days):
+{history}
+
+Fundamentals:
+{fundamentals}
+
+Recent news:
+{news}
+
+Weigh recent news heavily. Identify any specific near-term catalyst (earnings surprise, analyst action, product launch, macro event) and size your conviction around it. Use price history and fundamentals as context. If there is no meaningful catalyst, lean neutral.
+
+Return a JSON object with exactly these fields:
+- signal: a float between -1.0 and 1.0 where -1.0 is strong sell, 0.0 is neutral, 1.0 is strong buy
+- entry_price: suggested limit buy price (in USD) if you are bullish; otherwise null
+- target_price: suggested take-profit price (in USD) over a 2-4 week horizon if you are bullish; otherwise null
+- reasoning: a concise explanation referencing the key catalyst, price trend, fundamentals, and macro environment
+
+Respond with JSON only, no other text.
+
+Example:
+{{"signal": 0.7, "entry_price": 170.00, "target_price": 195.00, "reasoning": "Earnings beat last week with raised guidance is a clear catalyst; technicals show breakout from consolidation; macro tailwind from falling rates."}}"""
+
+    def build(self, ctx: AnalysisContext) -> str:
+        news_str = "\n".join(f"  {item}" for item in ctx.news) if ctx.news else "  No recent news."
+        return self._TEMPLATE.format(**self._format_common(ctx), news=news_str)
+
+
 basic_fundamentals = FundamentalsPrompt()
+swing_news_fundamentals = SwingNewsFundamentalsPrompt()
 
 PROMPT_REGISTRY: dict[str, Prompt] = {
     "basic_fundamentals": basic_fundamentals,
+    "swing_news_fundamentals": swing_news_fundamentals,
 }
