@@ -9,7 +9,7 @@ embeddings:
   provider: LOCAL
 
 execution:
-  # NOTIFY_ONLY -> REQUIRE_APPROVAL -> AUTONOMOUS
+  # NOTIFY_ONLY | AUTONOMOUS
   autonomy: NOTIFY_ONLY
   # PAPER -> LIVE
   trading: PAPER

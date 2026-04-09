@@ -6,7 +6,7 @@ from alpaca.trading.enums import OrderSide
 
 from truenorth.agent import Agent, Analysis
 from truenorth.alpaca import AlpacaClient
-from truenorth.config import Config, RiskConfig, TradingMode
+from truenorth.config import AutonomyMode, Config, RiskConfig, TradingMode
 from truenorth.llm import create_llm
 from truenorth.market import MacroContext, fetch_macro_context
 from truenorth.massive import MassiveClient
@@ -96,7 +96,10 @@ def trade(config: Config) -> None:
 
         for ticker, state, analysis in _prioritize(primary_results, config.risk):
             _, ctx = contexts[ticker]
-            handle(ticker, state, analysis, ctx.last_price, alpaca, config.risk)
+            if config.execution.autonomy == AutonomyMode.AUTONOMOUS:
+                handle(ticker, state, analysis, ctx.last_price, alpaca, config.risk)
+            else:
+                print(f"  [NOTIFY_ONLY] would handle {ticker} ({type(state).__name__}, signal={analysis.signal})")
 
 
 def fetch_contexts(

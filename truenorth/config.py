@@ -17,7 +17,6 @@ class EmbeddingsProvider(StrEnum):
 
 class AutonomyMode(StrEnum):
     NOTIFY_ONLY = "NOTIFY_ONLY"
-    REQUIRE_APPROVAL = "REQUIRE_APPROVAL"
     AUTONOMOUS = "AUTONOMOUS"
 
 
