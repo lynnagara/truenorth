@@ -5,14 +5,14 @@ from pydantic import BaseModel
 
 from truenorth.config import Config
 
-app = FastAPI(title="True North")
-
 
 class WatchlistItem(BaseModel):
     ticker: str
 
 
 def create_app(config: Config) -> FastAPI:
+    app = FastAPI(title="True North")
+
     @app.get("/watchlist")
     def get_watchlist() -> list[str]:
         with psycopg.connect(config.database_url) as conn:
@@ -43,5 +43,4 @@ def create_app(config: Config) -> FastAPI:
 
 
 def serve(config: Config) -> None:
-    create_app(config)
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(create_app(config), host="0.0.0.0", port=8000)

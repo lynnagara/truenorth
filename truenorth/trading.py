@@ -287,4 +287,4 @@ def handle(
                 alpaca.place_take_profit(ticker, analysis.target_price)
 
     else:
-        raise ValueError(f"Unhandled TickerStatus: {state.status}")
+        raise ValueError(f"Unhandled TickerState: {type(state).__name__}")
