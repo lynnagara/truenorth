@@ -56,9 +56,12 @@ class RiskConfig(BaseModel):
     max_daily_buys: int = Field(gt=0)
     buy_threshold: float = Field(ge=-1, le=1)
     sell_threshold: float = Field(ge=-1, le=1)
-    order_update_threshold: float = Field(
+    entry_update_threshold: float = Field(
         gt=0, le=1
-    )  # cancel and reissue if the model's suggested entry/target differs from the existing order by more than this fraction; 0 = always update, 1 = never update
+    )  # cancel and reissue pending buy if suggested entry differs by more than this fraction
+    target_update_threshold: float = Field(
+        gt=0, le=1
+    )  # cancel and reissue take-profit if suggested target differs by more than this fraction
     max_entry_discount: float = Field(gt=0, le=1)  # skip buy if model's suggested entry is more than this fraction below last price
 
     @model_validator(mode="after")

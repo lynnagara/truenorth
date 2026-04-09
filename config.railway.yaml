@@ -22,5 +22,6 @@ risk_management:
   max_daily_buys: 5
   buy_threshold: 0.65   # signal must be >= buy_threshold to open a position
   sell_threshold: -0.3  # signal must be <= sell_threshold to close a position
-  order_update_threshold: 0.03  # cancel and reissue if the model's suggested entry/target differs from the existing order by more than 3%
+  entry_update_threshold: 0.02  # cancel and reissue pending buy if suggested entry drifts by more than this fraction
+  target_update_threshold: 0.05  # cancel and reissue take-profit if suggested target drifts by more than this fraction
   max_entry_discount: 0.05  # skip buy if model's suggested entry is more than this fraction below last price

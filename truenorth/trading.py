@@ -188,14 +188,14 @@ def _prioritize(
         if isinstance(s, HeldWithExit)
         and a.target_price is not None
         and s.target_price is not None
-        and abs(a.target_price - s.target_price) / s.target_price > risk.order_update_threshold
+        and abs(a.target_price - s.target_price) / s.target_price > risk.target_update_threshold
     ]
     pending_buy_updates: list[tuple[str, TickerState, Analysis]] = [
         (t, s, a)
         for t, s, a in items
         if isinstance(s, PendingBuy)
         and a.entry_price is not None
-        and abs(a.entry_price - s.entry_price) / s.entry_price > risk.order_update_threshold
+        and abs(a.entry_price - s.entry_price) / s.entry_price > risk.entry_update_threshold
     ]
     new_buys: list[tuple[str, TickerState, Analysis]] = sorted(
         [
@@ -255,7 +255,7 @@ def handle(
             alpaca.cancel_order(state.order_id)
         elif analysis.entry_price is not None:
             drift = abs(analysis.entry_price - state.entry_price) / state.entry_price
-            if drift > risk.order_update_threshold:
+            if drift > risk.entry_update_threshold:
                 alpaca.cancel_order(state.order_id)
                 _place_buy_order(ticker, analysis, last_price, alpaca, risk)
 
@@ -271,7 +271,7 @@ def handle(
             alpaca.close_position(ticker)  # market sell — take-profit cancelled, exit immediately
         elif analysis.target_price is not None and state.target_price is not None:
             drift = abs(analysis.target_price - state.target_price) / state.target_price
-            if drift > risk.order_update_threshold:
+            if drift > risk.target_update_threshold:
                 alpaca.cancel_order(state.order_id)
                 alpaca.place_take_profit(ticker, analysis.target_price)
 
