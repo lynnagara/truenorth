@@ -12,7 +12,7 @@ def fetch_macro_context() -> MacroContext:
     vix = float(vix_ticker.fast_info["last_price"])
 
     spy_ticker = yf.Ticker("SPY")
-    hist = spy_ticker.history(period="6d")
-    spy_change_5d = float((hist["Close"].iloc[-1] - hist["Close"].iloc[0]) / hist["Close"].iloc[0])
+    hist = spy_ticker.history(period="6d")["Close"].dropna()
+    spy_change_5d = float((hist.iloc[-1] - hist.iloc[0]) / hist.iloc[0])
 
     return MacroContext(vix=vix, spy_change_5d=spy_change_5d)
