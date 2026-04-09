@@ -30,14 +30,16 @@ class LLM(ABC):
 
 
 class OllamaLLM(LLM):
-    def __init__(self, model: str):
+    def __init__(self, model: str, temperature: float):
         self._model = model
+        self._temperature = temperature
 
     def generate(self, prompt: str, json_schema: dict[str, Any] | None = None) -> str:
         response = ollama.chat(
             model=self._model,
             messages=[{"role": "user", "content": prompt}],
             format=json_schema,
+            options={"temperature": self._temperature},
         )
         if response.message.content is None:
             raise ValueError("LLM returned empty response")
@@ -50,15 +52,18 @@ class AnthropicLLM(LLM):
         api_key: str,
         model: str,
         max_tokens: int,
+        temperature: float,
     ):
         self._client = anthropic.Anthropic(api_key=api_key)
         self._model = model
         self._max_tokens = max_tokens
+        self._temperature = temperature
 
     def generate(self, prompt: str, json_schema: dict[str, Any] | None = None) -> str:
         kwargs: dict[str, Any] = {
             "model": self._model,
             "max_tokens": self._max_tokens,
+            "temperature": self._temperature,
             "messages": [{"role": "user", "content": prompt}],
         }
         if json_schema is not None:
@@ -77,12 +82,13 @@ def create_llm(
     anthropic_api_key: str | None = None,
 ) -> LLM:
     if config.provider == LLMProvider.LOCAL:
-        return OllamaLLM(model=config.model)
+        return OllamaLLM(model=config.model, temperature=config.temperature)
     if config.provider == LLMProvider.ANTHROPIC:
         assert anthropic_api_key is not None
         return AnthropicLLM(
             api_key=anthropic_api_key,
             model=config.model,
             max_tokens=config.max_tokens,
+            temperature=config.temperature,
         )
     raise ValueError(f"Unsupported LLM provider: {config.provider}")

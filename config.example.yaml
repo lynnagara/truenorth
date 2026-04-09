@@ -4,6 +4,7 @@ llm:
   model: llama3.2
   # only used if provider is Anthropic, Ollama ignores max_tokens
   max_tokens: 2000
+  temperature: 0.2
 
 embeddings:
   provider: LOCAL

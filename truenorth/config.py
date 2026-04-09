@@ -29,6 +29,7 @@ class LLMConfig(BaseModel):
     provider: LLMProvider
     model: str
     max_tokens: int = Field(gt=0)
+    temperature: float = Field(ge=0, le=1)
 
 
 class EmbeddingsConfig(BaseModel):
