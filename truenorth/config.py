@@ -61,7 +61,9 @@ class RiskConfig(BaseModel):
     target_update_threshold: float = Field(
         gt=0, le=1
     )  # cancel and reissue take-profit if suggested target differs by more than this fraction
-    max_entry_discount: float = Field(gt=0, le=1)  # skip buy if model's suggested entry is more than this fraction below last price
+    max_entry_discount: float = Field(
+        gt=0, le=1
+    )  # skip buy if model's suggested entry is more than this fraction below last price
 
     @model_validator(mode="after")
     def sell_below_buy(self) -> "RiskConfig":

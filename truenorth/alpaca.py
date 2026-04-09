@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 
 from alpaca.data.enums import Adjustment, DataFeed
 from alpaca.data.historical import NewsClient, StockHistoricalDataClient
@@ -113,6 +113,14 @@ class AlpacaClient:
 
     def get_open_orders(self) -> list[Order]:
         return self._trading.get_orders(GetOrdersRequest(status=QueryOrderStatus.OPEN))  # type: ignore[return-value]
+
+    def get_todays_buy_count(self) -> int:
+        """Count buy orders submitted today (open or filled)."""
+        today_start = datetime.combine(date.today(), time.min, tzinfo=timezone.utc)
+        orders: list[Order] = self._trading.get_orders(  # type: ignore[assignment]
+            GetOrdersRequest(status=QueryOrderStatus.ALL, side=OrderSide.BUY, after=today_start)
+        )
+        return len(orders)
 
     def get_open_position(self, ticker: str) -> Position:
         """Raises an exception if no position exists for the ticker."""

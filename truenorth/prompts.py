@@ -28,10 +28,16 @@ class Prompt:
         history_str = "\n".join(f"  {d}: ${p:.2f}" for d, p in ctx.price_history)
         fundamentals_str = "\n".join(
             [
-                f"  industry: {ctx.fundamentals.industry}" if ctx.fundamentals.industry else "  industry: N/A",
-                f"  market cap: ${ctx.fundamentals.market_cap:,.0f}" if ctx.fundamentals.market_cap else "  market cap: N/A",
+                f"  industry: {ctx.fundamentals.industry}"
+                if ctx.fundamentals.industry
+                else "  industry: N/A",
+                f"  market cap: ${ctx.fundamentals.market_cap:,.0f}"
+                if ctx.fundamentals.market_cap
+                else "  market cap: N/A",
                 f"  EPS: ${ctx.fundamentals.eps:.2f}" if ctx.fundamentals.eps else "  EPS: N/A",
-                f"  P/E ratio: {ctx.fundamentals.pe_ratio:.1f}" if ctx.fundamentals.pe_ratio else "  P/E ratio: N/A",
+                f"  P/E ratio: {ctx.fundamentals.pe_ratio:.1f}"
+                if ctx.fundamentals.pe_ratio
+                else "  P/E ratio: N/A",
             ]
         )
         vix_level = "elevated" if ctx.macro.vix > 25 else "normal" if ctx.macro.vix > 15 else "low"

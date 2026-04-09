@@ -94,12 +94,16 @@ def trade(config: Config) -> None:
 
             conn.commit()
 
-        for ticker, state, analysis in _prioritize(primary_results, config.risk):
+        for ticker, state, analysis in _prioritize(
+            primary_results, config.risk, alpaca.get_todays_buy_count()
+        ):
             _, ctx = contexts[ticker]
             if config.execution.autonomy == AutonomyMode.AUTONOMOUS:
                 handle(ticker, state, analysis, ctx.last_price, alpaca, config.risk)
             else:
-                print(f"  [NOTIFY_ONLY] would handle {ticker} ({type(state).__name__}, signal={analysis.signal})")
+                print(
+                    f"  [NOTIFY_ONLY] would handle {ticker} ({type(state).__name__}, signal={analysis.signal})"
+                )
 
 
 def fetch_contexts(
@@ -173,7 +177,9 @@ def run_analyses(
 
 
 def _prioritize(
-    results: dict[str, tuple[TickerState, Analysis, AnalysisContext]], risk: RiskConfig
+    results: dict[str, tuple[TickerState, Analysis, AnalysisContext]],
+    risk: RiskConfig,
+    buys_today: int,
 ) -> list[tuple[str, TickerState, Analysis]]:
     """
     exits first, then order updates, then new buys descreasing by signal strength.
@@ -200,7 +206,7 @@ def _prioritize(
         and a.entry_price is not None
         and abs(a.entry_price - s.entry_price) / s.entry_price > risk.entry_update_threshold
     ]
-    new_buys: list[tuple[str, TickerState, Analysis]] = sorted(
+    new_buys: list[tuple[str, TickerState, Analysis]] = sorted(  # type: ignore[assignment]
         [
             (t, s, a)
             for t, s, a in items
@@ -208,7 +214,7 @@ def _prioritize(
         ],
         key=lambda x: x[2].signal,
         reverse=True,
-    )
+    )[: max(0, risk.max_daily_buys - buys_today)]
 
     ordered = exits + take_profit_updates + pending_buy_updates + new_buys
     all_tickers = [t for t, _, _ in ordered]
@@ -223,7 +229,9 @@ def _place_buy_order(
     assert analysis.entry_price is not None and analysis.target_price is not None
     min_entry = last_price * (1 - risk.max_entry_discount)
     if analysis.entry_price < min_entry:
-        print(f"skipping buy for {ticker} — suggested entry {analysis.entry_price:.2f} is too far below last price {last_price:.2f}")
+        print(
+            f"skipping buy for {ticker} — suggested entry {analysis.entry_price:.2f} is too far below last price {last_price:.2f}"
+        )
         return
     entry_price = round(min(analysis.entry_price, last_price), 2)
     equity, buying_power = alpaca.get_account_info()
