@@ -14,8 +14,8 @@ execution:
   trading: PAPER
 
 experiments:
-  primary: basic_fundamentals
-  additional: [swing_news_fundamentals]
+  primary: swing_news_fundamentals
+  additional: [basic_fundamentals]
 
 risk_management:
   min_position_pct: 0.03

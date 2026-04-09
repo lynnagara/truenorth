@@ -65,7 +65,7 @@ class AlpacaClient:
         bars = self._data.get_stock_bars(request)
         return [(bar.timestamp.date(), float(bar.close)) for bar in bars[ticker]]
 
-    def get_news(self, ticker: str, days: int = 3, limit: int = 10) -> list[str]:
+    def get_news(self, ticker: str, days: int = 10, limit: int = 10) -> list[str]:
         """Return recent news headlines and summaries for a ticker."""
         start = datetime.now(tz=timezone.utc) - timedelta(days=days)
         request = NewsRequest(symbols=ticker, start=start, limit=limit, exclude_contentless=True)
