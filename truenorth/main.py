@@ -21,6 +21,18 @@ def main():
     serve_parser = subparsers.add_parser("serve", help="Start API server")
     _add_config_arg(serve_parser)
 
+    watchlist_parser = subparsers.add_parser("watchlist", help="Manage the watchlist")
+    _add_config_arg(watchlist_parser)
+    watchlist_sub = watchlist_parser.add_subparsers(dest="watchlist_command")
+
+    watchlist_add = watchlist_sub.add_parser("add", help="Add a ticker")
+    watchlist_add.add_argument("ticker", type=str.upper)
+
+    watchlist_remove = watchlist_sub.add_parser("remove", help="Remove a ticker")
+    watchlist_remove.add_argument("ticker", type=str.upper)
+
+    watchlist_sub.add_parser("list", help="List all tickers")
+
     args = parser.parse_args()
 
     if args.command == "trade":
@@ -38,6 +50,11 @@ def main():
         from truenorth.server import serve
 
         serve(config)
+    elif args.command == "watchlist":
+        from truenorth.watchlist import watchlist
+
+        config = load_config(config_path=args.config)
+        watchlist(args, config)
     else:
         parser.print_help()
 
