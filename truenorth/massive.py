@@ -41,7 +41,7 @@ class MassiveClient:
                 eps = float(
                     financial.financials.income_statement.basic_earnings_per_share.value  # type: ignore[attr-defined]
                 )
-            except (AttributeError, TypeError):
+            except AttributeError, TypeError:
                 pass
             break
 

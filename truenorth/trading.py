@@ -94,7 +94,7 @@ def trade(config: Config) -> None:
 
             conn.commit()
 
-        for ticker, state, analysis in _prioritize(
+        for ticker, state, analysis in prioritize(
             primary_results, config.risk, alpaca.get_todays_buy_count()
         ):
             _, ctx = contexts[ticker]
@@ -176,7 +176,7 @@ def run_analyses(
     return results
 
 
-def _prioritize(
+def prioritize(
     results: dict[str, tuple[TickerState, Analysis, AnalysisContext]],
     risk: RiskConfig,
     buys_today: int,
