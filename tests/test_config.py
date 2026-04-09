@@ -30,9 +30,10 @@ def test_load_config(monkeypatch):
 
     assert config.database_url == "postgresql://truenorth:truenorth@localhost:5432/truenorth"
 
-    assert config.llm.provider == LLMProvider.LOCAL
-    assert config.llm.model == "llama3.2"
+    assert config.llm.provider == LLMProvider.ANTHROPIC
+    assert config.llm.model == "claude-haiku-4-5"
     assert config.llm.max_tokens == 2000
+    assert config.llm.temperature == 0.2
 
     assert config.embeddings.provider == EmbeddingsProvider.LOCAL
 
