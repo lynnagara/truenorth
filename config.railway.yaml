@@ -1,6 +1,6 @@
 llm:
   provider: ANTHROPIC
-  model: claude-haiku-4-5 # test on cheapest model
+  model: claude-sonnet-4-6
   max_tokens: 2000
 
 embeddings:
