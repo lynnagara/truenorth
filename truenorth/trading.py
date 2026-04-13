@@ -275,6 +275,9 @@ def handle(
         if analysis.signal <= risk.sell_threshold:
             print(f"closing position {ticker}")
             alpaca.close_position(ticker)  # market sell — we want out immediately
+        elif analysis.target_price is not None:
+            print(f"re-placing take-profit for {ticker} at {analysis.target_price:.2f}")
+            alpaca.place_take_profit(ticker, analysis.target_price)
 
     elif isinstance(state, HeldWithExit):
         if analysis.signal <= risk.sell_threshold:
