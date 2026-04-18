@@ -1,0 +1,3 @@
+[deploy]
+startCommand = "truenorth evaluate --config config.railway.yaml"
+cronSchedule = "0 16 * * 6"  # Saturdays at 4pm UTC
