@@ -17,7 +17,7 @@ execution:
 
 experiments:
   primary: swing_news_fundamentals
-  additional: [basic_fundamentals]
+  additional: [swing_news_dip]
 
 risk_management:
   min_position_pct: 0.03
