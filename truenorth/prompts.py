@@ -132,6 +132,8 @@ Recent news:
 
 Identify any specific near-term catalyst (earnings surprise, analyst action, product launch, macro event) and size your conviction around it. Use fundamentals to assess business quality — favour positive or growing operating cash flow, reasonable gross margins, and manageable debt.
 
+Be mindful of valuation: a high P/E is only justified if there is a clear, near-term catalyst to support it. Without a strong catalyst, a high P/E stock is a risk, not an opportunity. Be skeptical of stocks that are expensive relative to their current earnings without an imminent reason for re-rating.
+
 Be mindful of entry timing: if the stock has already run up significantly on the catalyst (trading well above its 20-day MA), the move may be priced in — lean neutral or wait for a better entry. Prefer stocks where a catalyst exists but the price hasn't fully reacted yet, or where a quality stock has dipped.
 
 If there is no meaningful catalyst and no dip opportunity, lean neutral.
