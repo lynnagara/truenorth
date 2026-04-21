@@ -272,10 +272,10 @@ def handle(
 
     elif isinstance(state, HeldNoExit):
         # handles the off-chance the sell leg was cancelled externally (e.g. manually or by Alpaca)
-        if analysis.signal <= risk.sell_threshold:
+        if analysis.target_price is None:
             print(f"closing position {ticker}")
             alpaca.close_position(ticker)  # market sell — we want out immediately
-        elif analysis.target_price is not None:
+        else:
             print(f"re-placing take-profit for {ticker} at {analysis.target_price:.2f}")
             alpaca.place_take_profit(ticker, analysis.target_price)
 
