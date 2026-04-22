@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from alpaca.data.enums import Adjustment, DataFeed
 from alpaca.data.historical import NewsClient, StockHistoricalDataClient
@@ -116,7 +116,7 @@ class AlpacaClient:
 
     def get_todays_buy_count(self) -> int:
         """Count buy orders submitted today (open or filled)."""
-        today_start = datetime.combine(date.today(), time.min, tzinfo=timezone.utc)
+        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
         orders: list[Order] = self._trading.get_orders(  # type: ignore[assignment]
             GetOrdersRequest(status=QueryOrderStatus.ALL, side=OrderSide.BUY, after=today_start)
         )
