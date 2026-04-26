@@ -11,7 +11,7 @@ execution:
   # NOTIFY_ONLY | AUTONOMOUS
   autonomy: AUTONOMOUS
   # PAPER -> LIVE
-  trading: PAPER
+  trading: LIVE
 
 experiments:
   primary: swing_news_fundamentals
