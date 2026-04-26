@@ -12,7 +12,7 @@ migrate:
 	uv run python scripts/migrate.py
 
 trade:
-	uv run truenorth trade --config config.example.yaml
+	uv run truenorth trade --config config.example.yaml --cache
 
 serve:
 	uv run truenorth serve --config config.example.yaml
