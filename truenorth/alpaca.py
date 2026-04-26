@@ -84,9 +84,9 @@ class AlpacaClient:
         return result
 
     def get_account_info(self) -> tuple[float, float]:
-        """Returns (equity, buying_power)."""
+        """Returns (equity, non_marginable_buying_power)."""
         account = self._trading.get_account()
-        return float(account.equity), float(account.buying_power)  # type: ignore[arg-type]
+        return float(account.equity), float(account.non_marginable_buying_power)  # type: ignore[arg-type]
 
     def place_order(
         self,
