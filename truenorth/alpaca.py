@@ -106,6 +106,7 @@ class AlpacaClient:
                 order_class=OrderClass.OTO,
                 limit_price=entry_price,
                 take_profit=TakeProfitRequest(limit_price=target_price),
+                extended_hours=True,
             )
         )
         return str(order.id)  # type: ignore[union-attr]
@@ -139,6 +140,7 @@ class AlpacaClient:
                 type=OrderType.LIMIT,
                 time_in_force=TimeInForce.GTC,
                 limit_price=target_price,
+                extended_hours=True,
             )
         )
         return str(order.id)  # type: ignore[union-attr]
