@@ -1,5 +1,4 @@
 import json
-import time
 from dataclasses import asdict, dataclass
 
 import psycopg
@@ -8,9 +7,9 @@ from alpaca.trading.enums import OrderSide
 from truenorth.agent import Agent, Analysis
 from truenorth.alpaca import AlpacaClient
 from truenorth.config import AutonomyMode, Config, RiskConfig, TradingMode
+from truenorth.fundamentals_cache import FundamentalsCache
 from truenorth.llm import create_llm
 from truenorth.market import MacroContext, fetch_macro_context
-from truenorth.fundamentals_cache import FundamentalsCache
 from truenorth.massive import MassiveClient
 from truenorth.prompts import PROMPT_REGISTRY, AnalysisContext
 from truenorth.tracing import init_tracing, trace_analysis, trace_run
