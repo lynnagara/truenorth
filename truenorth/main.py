@@ -14,9 +14,6 @@ def main():
 
     trade_parser = subparsers.add_parser("trade", help="Execute trading cycle")
     _add_config_arg(trade_parser)
-    trade_parser.add_argument(
-        "--cache", action="store_true", help="Cache Massive API responses locally"
-    )
 
     evaluate_parser = subparsers.add_parser("evaluate", help="Evaluate signal accuracy vs SPY")
     _add_config_arg(evaluate_parser)
@@ -40,12 +37,6 @@ def main():
 
     if args.command == "trade":
         from truenorth.trading import trade
-
-        if args.cache:
-            import truenorth.trading as _trading
-            from truenorth.massive_cached import CachedMassiveClient
-
-            _trading.MassiveClient = CachedMassiveClient  # type: ignore[attr-defined]
 
         config = load_config(config_path=args.config)
         trade(config)

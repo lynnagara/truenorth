@@ -13,6 +13,9 @@ execution:
   # PAPER -> LIVE
   trading: LIVE
 
+cache:
+  fundamentals_ttl_hours: 1
+
 experiments:
   primary: swing_news_fundamentals
   additional: [swing_news_dip]

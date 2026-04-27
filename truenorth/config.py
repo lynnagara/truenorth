@@ -50,6 +50,10 @@ class ExecutionConfig(BaseModel):
     trading: TradingMode
 
 
+class CacheConfig(BaseModel):
+    fundamentals_ttl_hours: int = 1
+
+
 class RiskConfig(BaseModel):
     max_position_pct: float = Field(gt=0, le=1)
     min_position_pct: float = Field(gt=0, le=1)
@@ -89,6 +93,7 @@ class Config(BaseModel):
     execution: ExecutionConfig
     experiments: ExperimentsConfig
     risk: RiskConfig
+    cache: CacheConfig
 
     @model_validator(mode="after")
     def anthropic_key_required_for_anthropic_provider(self) -> "Config":
@@ -129,4 +134,5 @@ def load_config(config_path: Path) -> Config:
         execution=ExecutionConfig(**y["execution"]),
         experiments=ExperimentsConfig(**y["experiments"]),
         risk=RiskConfig(**y["risk_management"]),
+        cache=CacheConfig(**y.get("cache", {})),
     )

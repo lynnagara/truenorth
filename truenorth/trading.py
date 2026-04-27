@@ -1,4 +1,5 @@
 import json
+import time
 from dataclasses import asdict, dataclass
 
 import psycopg
@@ -9,6 +10,7 @@ from truenorth.alpaca import AlpacaClient
 from truenorth.config import AutonomyMode, Config, RiskConfig, TradingMode
 from truenorth.llm import create_llm
 from truenorth.market import MacroContext, fetch_macro_context
+from truenorth.fundamentals_cache import FundamentalsCache
 from truenorth.massive import MassiveClient
 from truenorth.prompts import PROMPT_REGISTRY, AnalysisContext
 from truenorth.tracing import init_tracing, trace_analysis, trace_run
@@ -47,6 +49,7 @@ def trade(config: Config) -> None:
         paper=config.execution.trading == TradingMode.PAPER,
     )
     massive = MassiveClient(config.massive_api_key)
+    fundamentals_cache = FundamentalsCache(config.database_url, ttl_hours=config.cache.fundamentals_ttl_hours)
 
     init_tracing(config)
 
@@ -56,7 +59,7 @@ def trade(config: Config) -> None:
     with trace_run():
         primary_results: dict[str, tuple[TickerState, Analysis, AnalysisContext]] = {}
 
-        contexts = fetch_contexts(alpaca, massive, macro, config)
+        contexts = fetch_contexts(alpaca, massive, fundamentals_cache, macro, config)
 
         with psycopg.connect(config.database_url) as conn:
             for prompt_name in config.experiments.all_prompts:
@@ -109,6 +112,7 @@ def trade(config: Config) -> None:
 def fetch_contexts(
     alpaca: AlpacaClient,
     massive: MassiveClient,
+    fundamentals_cache: FundamentalsCache,
     macro: MacroContext,
     config: Config,
 ) -> dict[str, tuple[TickerState, AnalysisContext]]:
@@ -127,7 +131,8 @@ def fetch_contexts(
     for ticker in all_tickers:
         last_price = alpaca.get_latest_price(ticker)
         history = alpaca.get_price_history(ticker)
-        fundamentals = massive.get_fundamentals(ticker, last_price)
+        fundamentals = fundamentals_cache.get(ticker) or massive.get_fundamentals(ticker, last_price)
+        fundamentals_cache.set(ticker, fundamentals)
         news = alpaca.get_news(ticker)
 
         ctx = AnalysisContext(
@@ -245,6 +250,7 @@ def _place_buy_order(
     if qty < min_qty:
         print(f"Not enough buying power, skipping buy for {ticker}")
         return
+    print(f"placing buy for {ticker}: qty={qty} entry={entry_price:.2f} target={analysis.target_price:.2f}")
     alpaca.place_order(ticker, qty, entry_price, analysis.target_price)
 
 
@@ -270,6 +276,7 @@ def handle(
         elif analysis.entry_price is not None:
             drift = abs(analysis.entry_price - state.entry_price) / state.entry_price
             if drift > risk.entry_update_threshold:
+                print(f"replacing buy order for {ticker}: entry {state.entry_price:.2f} -> {analysis.entry_price:.2f}")
                 alpaca.cancel_order(state.order_id)
                 _place_buy_order(ticker, analysis, last_price, alpaca, risk)
 
@@ -284,11 +291,13 @@ def handle(
 
     elif isinstance(state, HeldWithExit):
         if analysis.signal <= risk.sell_threshold:
+            print(f"closing position {ticker} (signal={analysis.signal:.2f})")
             alpaca.cancel_order(state.order_id)
             alpaca.close_position(ticker)  # market sell — take-profit cancelled, exit immediately
         elif analysis.target_price is not None and state.target_price is not None:
             drift = abs(analysis.target_price - state.target_price) / state.target_price
             if drift > risk.target_update_threshold:
+                print(f"replacing take-profit for {ticker}: target {state.target_price:.2f} -> {analysis.target_price:.2f}")
                 alpaca.cancel_order(state.order_id)
                 alpaca.place_take_profit(ticker, analysis.target_price)
 
