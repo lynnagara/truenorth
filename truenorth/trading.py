@@ -169,10 +169,13 @@ def run_analyses(
 ) -> dict[str, tuple[TickerState, Analysis, AnalysisContext]]:
     results: dict[str, tuple[TickerState, Analysis, AnalysisContext]] = {}
     for ticker, (state, ctx) in contexts.items():
-        with trace_analysis(ctx, config.llm.model) as record:
-            analysis = agent.analyze(ctx)
-            record(analysis.model_dump())
-        results[ticker] = (state, analysis, ctx)
+        try:
+            with trace_analysis(ctx, config.llm.model) as record:
+                analysis = agent.analyze(ctx)
+                record(analysis.model_dump())
+            results[ticker] = (state, analysis, ctx)
+        except Exception as e:
+            print(f"  [ERROR] {ticker}: {e}")
     return results
 
 
