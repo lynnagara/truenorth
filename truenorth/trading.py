@@ -246,8 +246,8 @@ def _place_buy_order(
     max_qty = int((equity * risk.max_position_pct) / entry_price)
     affordable_qty = int(buying_power / entry_price)
     qty = min(max_qty, affordable_qty)
-    if qty < min_qty:
-        print(f"Not enough buying power, skipping buy for {ticker}")
+    if qty < max(min_qty, 1):
+        print(f"skipping buy for {ticker} — qty={qty} too small")
         return
     print(f"placing buy for {ticker}: qty={qty} entry={entry_price:.2f} target={analysis.target_price:.2f}")
     alpaca.place_order(ticker, qty, entry_price, analysis.target_price)
