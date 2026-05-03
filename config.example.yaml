@@ -11,7 +11,7 @@ embeddings:
 
 execution:
   # NOTIFY_ONLY | AUTONOMOUS
-  autonomy: NOTIFY_ONLY
+  autonomy: AUTONOMOUS
   # PAPER -> LIVE
   trading: PAPER
 
