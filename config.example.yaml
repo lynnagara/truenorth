@@ -20,7 +20,7 @@ cache:
 
 experiments:
   primary: swing_news_fundamentals
-  additional: [swing_news_dip]
+  additional: [conviction_news]
 
 risk_management:
   min_position_pct: 0.03

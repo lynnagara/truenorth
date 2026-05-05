@@ -159,12 +159,62 @@ Example:
         return self._TEMPLATE.format(**self._format_common(ctx), ma20=ma20, ma20_diff=ma20_diff, drawdown=drawdown, news=news_str)
 
 
+class ConvictionNewsPrompt(Prompt):
+    _TEMPLATE = """You are a long-term equity analyst evaluating {ticker} at ${last_price:.2f}. Your horizon is 2-6 months — long enough to ride a thesis without trading around quarterly noise, but not buy-and-forget.
+
+Macro environment:
+{macro}
+
+Price history (daily close, last 90 days):
+{history}
+
+Fundamentals:
+{fundamentals}
+
+Recent news:
+{news}
+
+Combine two assessments:
+(1) Is {ticker} a quality compounder worth owning? Judge durable competitive position (moat, switching costs, scale), capital allocation quality (operating cash flow, debt, return on capital), secular tailwinds, and valuation relative to long-term earning power.
+(2) What does recent news tell you about the long-term thesis or current entry timing? Distinguish thesis-relevant news (regulatory action, structural disruption, durable margin shifts, capital allocation changes) from short-term noise (single-quarter beats/misses, individual analyst calls).
+
+Quality with confirming news supports high conviction. Quality with adverse news may still warrant a hold but justifies patience on entry. A mediocre or stretched business with positive momentum is news chasing, not conviction. Thesis-breaking news deserves a bearish signal regardless of prior quality.
+
+Reserve signals at or above 0.7 for cases where business quality is high AND price is reasonable AND no thesis-breaking news is in flight. A great business at a stretched price, or a quality business under news pressure, should land in the moderate-bullish range.
+
+Return a JSON object with exactly these fields:
+- signal: a float between -1.0 and 1.0 reflecting conviction over this horizon (1.0 = high-conviction hold, 0.0 = neutral, -1.0 = avoid or sell)
+- entry_price: suggested limit buy price (in USD) if you are bullish; otherwise null
+- target_price: null — conviction holds have no exit target
+- reasoning: a concise explanation referencing the moat, capital allocation, secular trend, valuation, and how recent news affects the thesis or entry timing
+
+Respond with JSON only, no other text.
+
+Example (quality + confirming news):
+{{"signal": 0.85, "entry_price": 42.00, "target_price": null, "reasoning": "Established platform business with strong network effects and pricing power; expansion into adjacent markets is generating durable FCF; recent results validate the capital deployment strategy. Reasonable multiple given the quality and growth profile."}}
+
+Example (quality + adverse news, hold but wait on entry):
+{{"signal": 0.55, "entry_price": 88.50, "target_price": null, "reasoning": "High-quality consumer franchise with durable engagement and FCF; recent earnings flagged accelerating capex that may pressure near-term margins. Long-term thesis intact; wait for entry on a deeper pullback rather than chasing the bounce."}}
+
+Example (mediocre or stretched):
+{{"signal": 0.05, "entry_price": null, "target_price": null, "reasoning": "Capital-intensive cyclical with limited pricing power; short-term momentum from a product cycle but no durable moat; valuation embeds optimistic cycle assumptions. Not a long-term compounder at this price."}}
+
+Example (thesis-breaking news):
+{{"signal": -0.6, "entry_price": null, "target_price": null, "reasoning": "Previously high-quality franchise but recent regulatory ruling restructures the core business model; durable revenue base now in question. Avoid until regulatory path clarifies."}}"""
+
+    def build(self, ctx: AnalysisContext) -> str:
+        news_str = "\n".join(f"  {item}" for item in ctx.news) if ctx.news else "  No recent news."
+        return self._TEMPLATE.format(**self._format_common(ctx), news=news_str)
+
+
 basic_fundamentals = FundamentalsPrompt()
 swing_news_fundamentals = SwingNewsFundamentalsPrompt()
 swing_news_dip = SwingNewsDipPrompt()
+conviction_news = ConvictionNewsPrompt()
 
 PROMPT_REGISTRY: dict[str, Prompt] = {
     "basic_fundamentals": basic_fundamentals,
     "swing_news_fundamentals": swing_news_fundamentals,
     "swing_news_dip": swing_news_dip,
+    "conviction_news": conviction_news,
 }
