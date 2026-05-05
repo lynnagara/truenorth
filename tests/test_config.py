@@ -37,10 +37,10 @@ def test_load_config(monkeypatch):
 
     assert config.embeddings.provider == EmbeddingsProvider.LOCAL
 
-    assert config.execution.autonomy == AutonomyMode.NOTIFY_ONLY
+    assert config.execution.autonomy == AutonomyMode.AUTONOMOUS
     assert config.execution.trading == TradingMode.PAPER
 
     assert config.risk.max_position_pct == 0.10
     assert config.risk.min_position_pct == 0.03
     assert config.risk.max_daily_buys == 5
-    assert config.risk.buy_threshold == 0.65
+    assert config.risk.buy_threshold == 0.60
